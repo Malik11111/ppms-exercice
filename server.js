@@ -117,5 +117,5 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.ht
 // ── Démarrage ────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 initDB().then(() => {
-  server.listen(PORT, () => console.log(`🚀 PPMS backend sur port ${PORT}`));
+  server.listen(PORT, '0.0.0.0', () => console.log(`🚀 PPMS backend sur port ${PORT}`));
 }).catch(e => { console.error('Erreur initDB:', e); process.exit(1); });

@@ -1,0 +1,2399 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exercice PPMS - Interface Complète URGENCE</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #001529 0%, #002766 50%, #003d82 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            background: linear-gradient(135deg, #001529 0%, #002766 50%, #003d82 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header-content h1 { font-size: 1.8em; margin-bottom: 4px; }
+        .header-content p { font-size: 0.95em; opacity: 0.9; }
+        .header-timer { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .timer-display {
+            font-size: 1.8em; font-weight: bold; color: white;
+            padding: 10px 24px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px; cursor: pointer;
+            transition: all 0.3s; user-select: none;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .timer-display:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
+        .timer-display.running {
+            background: rgba(76,175,80,0.3);
+            border-color: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,100% { box-shadow: 0 0 10px rgba(76,175,80,0.3); }
+            50% { box-shadow: 0 0 20px rgba(76,175,80,0.6); }
+        }
+        .timer-btn {
+            padding: 5px 14px;
+            background: rgba(255,255,255,0.2);
+            color: white; border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold;
+            transition: all 0.3s;
+        }
+        .timer-btn:hover { background: rgba(255,255,255,0.3); }
+
+        /* ── TOOLBAR ── */
+        .toolbar {
+            padding: 10px 15px;
+            background: #e3f2fd;
+            border-bottom: 3px solid #1976d2;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+        .toolbar-sep { width: 1px; height: 30px; background: #90caf9; margin: 0 4px; }
+
+        .btn {
+            padding: 8px 14px;
+            border: none; border-radius: 6px;
+            cursor: pointer; font-size: 13px; font-weight: bold;
+            transition: all 0.2s; white-space: nowrap;
+        }
+        .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        .btn-green  { background: #4caf50; color: white; }
+        .btn-blue   { background: #42a5f5; color: white; }
+        .btn-lblue  { background: #64b5f6; color: white; }
+        .btn-orange { background: #ff9800; color: white; }
+        .btn-teal   { background: #17a2b8; color: white; }
+        .btn-red    { background: #dc3545; color: white; }
+        .btn-purple { background: #6f42c1; color: white; }
+        .btn-pink   { background: #e83e8c; color: white; }
+        .btn-dark   { background: #343a40; color: white; }
+
+        /* ── SCENARIO BANNER ── */
+        #scenarioBanner {
+            display: none;
+            margin: 8px 15px;
+            padding: 8px 20px;
+            font-size: 13px; font-weight: bold;
+            border-radius: 6px;
+        }
+        #scenarioBanner.intrusion-interne {
+            background: #ffebee; color: #b71c1c;
+            border: 2px solid #ef9a9a;
+        }
+        #scenarioBanner.inondation {
+            background: #e3f2fd; color: #0d47a1;
+            border: 2px solid #90caf9;
+        }
+
+        /* ── SEARCH ── */
+        .search-wrap {
+            padding: 10px 15px 4px 15px;
+            position: sticky; top: 0; z-index: 50;
+            background: white;
+        }
+        .search-input {
+            width: 100%; padding: 12px 18px; font-size: 16px;
+            border: 2px solid #42a5f5; border-radius: 8px;
+            background: white; color: #333;
+        }
+        .search-input:focus { outline: none; border-color: #1976d2; }
+
+        /* ── TABS ── */
+        .tabs-header {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            padding: 0 15px;
+            margin-top: 8px;
+        }
+        .tab-btn {
+            padding: 12px 40px;
+            font-size: 16px; font-weight: bold;
+            border: none; cursor: pointer;
+            background: #fafafa; color: #999;
+            border-bottom: 4px solid transparent;
+            border-radius: 8px 8px 0 0;
+            margin-right: 4px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active-a { color: #1976d2; border-bottom-color: #1976d2; background: #e3f2fd; }
+        .tab-btn.active-b { color: #7b1fa2; border-bottom-color: #7b1fa2; background: #f3e5f5; }
+        .tab-btn:not(.active-a):not(.active-b):hover { color: #555; background: #f0f0f0; }
+
+        .tab-content { display: none; padding: 15px; }
+        .tab-content.active { display: block; }
+
+        /* ── ZONES ── */
+        .zone {
+            background: #f5f5f5;
+            border-radius: 8px; padding: 12px 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #42a5f5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        }
+        .zone.bat-b { border-left-color: #ab47bc; }
+        .zone-header {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 12px;
+            padding-bottom: 10px; border-bottom: 2px solid #e9ecef;
+            gap: 12px; flex-wrap: wrap;
+        }
+        .zone-name { font-size: 1.3em; font-weight: bold; color: #1976d2; }
+        .zone-name.bat-b { color: #7b1fa2; }
+        .badge-bat {
+            display: inline-block; padding: 3px 10px;
+            border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 8px;
+        }
+        .badge-bat-a { background: #e3f2fd; color: #1976d2; }
+        .badge-bat-b { background: #f3e5f5; color: #7b1fa2; }
+        .zone-count {
+            background: #42a5f5; color: white;
+            padding: 4px 14px; border-radius: 14px;
+            font-weight: bold; font-size: 15px;
+        }
+        .zone-tel { display: flex; align-items: center; gap: 8px; }
+        .zone-tel-label { font-weight: bold; color: #666; font-size: 12px; }
+        .zone-tel-input {
+            padding: 5px 10px; border: 2px solid #e0e0e0;
+            border-radius: 5px; width: 175px; font-size: 13px;
+            background: white; color: #333;
+        }
+        .zone-tel-input:focus { outline: none; border-color: #42a5f5; }
+
+        .zone-content { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .zone-column { background: white; border-radius: 8px; padding: 10px; }
+        .zone-column-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 10px; border-radius: 5px; margin-bottom: 10px;
+            font-weight: bold; color: white;
+        }
+        .col-pers { background: linear-gradient(135deg, #1976d2, #1565c0); }
+        .col-enf  { background: linear-gradient(135deg, #f57c00, #e65100); }
+
+        .col-count { background: rgba(255,255,255,0.25); color: white; padding: 2px 12px; border-radius: 10px; font-weight: bold; }
+        .btn-add-col {
+            padding: 3px 8px; background: #28a745; color: white;
+            border: none; border-radius: 4px; cursor: pointer;
+            font-size: 11px; font-weight: bold;
+        }
+        .btn-add-col:hover { background: #218838; }
+
+        /* ── PERSON CARDS ── */
+        .person-card {
+            background: #fafafa; padding: 8px 10px;
+            margin-bottom: 6px; border-radius: 5px;
+            border-left: 3px solid #bdbdbd;
+            display: flex; justify-content: space-between; align-items: center;
+            transition: all 0.2s; min-height: 54px;
+        }
+        .person-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .person-card.st-present  { background: #d4edda; border-left-color: #28a745; }
+        .person-card.st-absent   { background: #f5c6cb; border-left-color: #dc3545; opacity: 0.9; }
+        .person-card.st-autre    { background: #fff3b0; border-left-color: #ffc107; }
+        .person-card.st-sortie   { background: #bee5eb; border-left-color: #17a2b8; }
+        .person-card.st-displaced { background: #f3e5f5; border-left-color: #9c27b0; }
+
+        .person-info { flex: 1; min-width: 0; }
+        .person-name { font-weight: bold; color: #333; font-size: 14px; }
+        .person-origin { font-size: 11px; color: #8e24aa; font-weight: 600; margin-top: 2px; }
+        .person-actions { display: flex; gap: 4px; flex-shrink: 0; }
+        .btn-st {
+            padding: 5px 9px; border: none; border-radius: 5px;
+            cursor: pointer; font-size: 13px; font-weight: bold;
+            min-width: 34px; min-height: 34px;
+            transition: all 0.15s;
+        }
+        .btn-st:hover { filter: brightness(1.15); transform: scale(1.05); }
+        .btn-st.active { border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.3); }
+        .btn-st-present { background: #28a745; color: white; }
+        .btn-st-absent  { background: #dc3545; color: white; }
+        .btn-st-autre   { background: #ffc107; color: #333; }
+        .btn-st-sortie  { background: #17a2b8; color: white; }
+        .btn-st-pending { background: #9e9e9e; color: white; }
+        .btn-st-delete  { background: #6c757d; color: white; }
+
+        /* ── MODALS ── */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 9000; overflow-y: auto;
+        }
+        .modal-box {
+            background: white; max-width: 820px;
+            margin: 30px auto; padding: 28px;
+            border-radius: 12px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.3);
+        }
+        .modal-box.sm { max-width: 520px; }
+        .modal-title {
+            font-size: 1.4em; font-weight: bold; color: #1976d2;
+            margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-close {
+            font-size: 24px; cursor: pointer; color: #aaa; line-height: 1;
+            background: none; border: none;
+        }
+        .modal-close:hover { color: #333; }
+
+        /* Config tabs */
+        .cfg-tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+        .cfg-tab {
+            padding: 8px 20px; border: none; border-radius: 6px;
+            cursor: pointer; font-size: 14px; font-weight: bold;
+            background: #f0f0f0; color: #666;
+        }
+        .cfg-tab.active { background: #1976d2; color: white; }
+        .cfg-tab-content { display: none; }
+        .cfg-tab-content.active { display: block; }
+
+        /* Tables in config */
+        .cfg-table {
+            width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px;
+        }
+        .cfg-table th {
+            background: #1976d2; color: white; padding: 8px 10px; text-align: left;
+        }
+        .cfg-table td {
+            padding: 7px 10px; border-bottom: 1px solid #eee;
+        }
+        .cfg-table tr:hover td { background: #f5f5f5; }
+        .cfg-table .btn-sm {
+            padding: 3px 8px; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 12px; font-weight: bold; margin: 0 2px;
+        }
+        .cfg-table .btn-edit { background: #42a5f5; color: white; }
+        .cfg-table .btn-del  { background: #dc3545; color: white; }
+
+        .form-row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: flex-end; }
+        .form-field { display: flex; flex-direction: column; gap: 4px; min-width: 120px; flex: 1; }
+        .form-field label { font-size: 12px; font-weight: bold; color: #555; }
+        .form-field input, .form-field select {
+            padding: 8px 10px; border: 2px solid #e0e0e0; border-radius: 6px;
+            font-size: 13px; background: white; color: #333;
+        }
+        .form-field input:focus, .form-field select:focus { outline: none; border-color: #42a5f5; }
+
+        /* Scenario modal */
+        .sc-field { margin-bottom: 16px; }
+        .sc-field label { display: block; font-weight: bold; margin-bottom: 6px; color: #333; }
+        .sc-field select, .sc-field textarea {
+            width: 100%; padding: 10px; border: 2px solid #1976d2;
+            border-radius: 6px; font-size: 14px; font-family: Arial, sans-serif;
+        }
+        .sc-field select:focus, .sc-field textarea:focus { outline: none; }
+
+        /* Zone options in modal */
+        .zone-option {
+            padding: 10px 14px; margin: 6px 0;
+            border: 2px solid #e9ecef; border-radius: 8px;
+            cursor: pointer; font-weight: bold; transition: all 0.2s;
+        }
+        .zone-option:hover { border-color: #42a5f5; background: #e3f2fd; }
+        .zone-option.bat-b:hover { border-color: #ab47bc; background: #f3e5f5; }
+
+        /* Add person modal */
+        .modal-input {
+            width: 100%; padding: 10px 12px; margin-bottom: 12px;
+            border: 2px solid #e9ecef; border-radius: 8px; font-size: 15px;
+        }
+        .modal-input:focus { outline: none; border-color: #42a5f5; }
+
+        /* Modal buttons */
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+
+        /* Upload file hidden */
+        input[type="file"] { display: none; }
+        .upload-btn {
+            display: inline-block; padding: 8px 14px;
+            background: #42a5f5; color: white;
+            border: none; border-radius: 6px;
+            cursor: pointer; font-size: 13px; font-weight: bold;
+            transition: all 0.2s; white-space: nowrap;
+        }
+        .upload-btn:hover { background: #1e88e5; transform: translateY(-1px); }
+
+        /* Scrollable content */
+        .tab-scroll { max-height: 65vh; overflow-y: auto; }
+        .cfg-list { max-height: 300px; overflow-y: auto; }
+
+        /* Empty zone message */
+        .empty-msg { color: #aaa; font-size: 13px; text-align: center; padding: 10px 0; font-style: italic; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+    <div class="header">
+        <div class="header-content">
+            <h1>🚨 PPMS - Interface Complète URGENCE</h1>
+            <p>Suivi global de tous les bâtiments lors d'une urgence réelle</p>
+        </div>
+        <div class="header-timer">
+            <div class="timer-display" id="timerDisplay" onclick="toggleTimer()">00:00:00</div>
+            <button class="timer-btn" onclick="resetTimer()">🔄 Reset</button>
+        </div>
+    </div>
+
+    <!-- ══ TOOLBAR ══════════════════════════════════════════════════════════ -->
+    <div class="toolbar">
+        <button class="btn btn-dark" onclick="openConfig()">🗂️ Config</button>
+        <button class="btn btn-green" onclick="loadFromConfig()">⚙️ Charger depuis Config</button>
+        <div class="toolbar-sep"></div>
+        <button class="btn btn-orange" onclick="openScenario()">⚙️ Configurer Scénario</button>
+        <button class="btn" style="background:#28a745;color:white;" onclick="exportExcel()">📊 Exporter Rapport Excel</button>
+
+        <button class="btn btn-teal" onclick="checkData()">🔍 Vérifier Données</button>
+        <button class="btn btn-red" onclick="resetAll()">🔄 Réinitialiser</button>
+    </div>
+
+    <!-- ══ SCENARIO BANNER ══════════════════════════════════════════════════ -->
+    <div id="scenarioBanner"></div>
+
+    <!-- ══ SEARCH ═══════════════════════════════════════════════════════════ -->
+    <div class="search-wrap">
+        <input type="text" class="search-input" id="searchInput"
+               placeholder="🔍 Rechercher une personne..."
+               oninput="searchPersons(this.value)">
+    </div>
+
+    <!-- ══ TABS BÂTIMENT A / B ══════════════════════════════════════════════ -->
+    <div class="tabs-header">
+        <button class="tab-btn active-a" id="tabBtnA" onclick="switchTab('A')">🏢 Bâtiment A</button>
+        <button class="tab-btn" id="tabBtnB" onclick="switchTab('B')">🏢 Bâtiment B</button>
+    </div>
+
+    <div id="tabA" class="tab-content tab-scroll active">
+        <div id="zonesA"></div>
+    </div>
+    <div id="tabB" class="tab-content tab-scroll">
+        <div id="zonesB"></div>
+    </div>
+
+</div><!-- /container -->
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MODALS
+═══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- ── CONFIG ──────────────────────────────────────────────────────────── -->
+<div id="modalConfig" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">
+            🗂️ Configuration (Référentiel)
+            <button class="modal-close" onclick="closeConfig()">×</button>
+        </div>
+        <p style="color:#1976d2;font-size:13px;margin:0 0 8px 0;">⚙️ Référentiel Central — Données partagées entre tous les modules</p>
+        <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <button class="btn" style="background:#1976d2;color:#fff;border:2px solid #1565c0;padding:8px 16px;font-size:13px;" onclick="downloadModeleExcel()">📥 Télécharger le modèle Excel complet</button>
+            <input type="file" id="fileImportGlobal" accept=".xlsx,.xls" onchange="importGlobalExcel(event)" style="display:none;">
+            <label for="fileImportGlobal" class="btn" style="background:#43a047;color:#fff;padding:8px 16px;font-size:13px;cursor:pointer;">📦 Importer fichier Excel</label>
+            <button class="btn" style="background:#7b1fa2;color:#fff;padding:8px 16px;font-size:13px;" onclick="controleCoherence()">🔧 Contrôle de cohérence</button>
+        </div>
+        <div class="cfg-tabs">
+            <button class="cfg-tab active" onclick="switchCfgTab('personnel')">👔 Personnel</button>
+            <button class="cfg-tab" onclick="switchCfgTab('enfants')">👶 Enfants</button>
+            <button class="cfg-tab" onclick="switchCfgTab('lieux')">🏠 Lieux</button>
+            <button class="cfg-tab" onclick="switchCfgTab('regles')">🔷 Règles PPMS</button>
+        </div>
+
+        <!-- PERSONNEL -->
+        <div id="cfgPersonnel" class="cfg-tab-content active">
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Nom *</label>
+                    <input type="text" id="pNom" placeholder="DUPONT">
+                </div>
+                <div class="form-field">
+                    <label>Prénom *</label>
+                    <input type="text" id="pPrenom" placeholder="Marie">
+                </div>
+                <div class="form-field">
+                    <label>Poste</label>
+                    <input type="text" id="pPoste" placeholder="Éducateur">
+                </div>
+                <div class="form-field" style="min-width:150px;">
+                    <label>Lieu (origine)</label>
+                    <input type="text" id="pLieu" placeholder="Les Choucas" list="lieuList">
+                    <datalist id="lieuList"></datalist>
+                </div>
+                <div class="form-field" style="max-width:130px;">
+                    <label>Contrat</label>
+                    <select id="pContrat">
+                        <option value="CDI">CDI</option>
+                        <option value="CDD">CDD</option>
+                        <option value="Intervenant ext">Intervenant ext</option>
+                        <option value="Stagiaire">Stagiaire</option>
+                    </select>
+                </div>
+                <div class="form-field" style="max-width:130px;">
+                    <label>Date entrée</label>
+                    <input type="text" id="pDateEntree" placeholder="01-09-2025">
+                </div>
+                <div class="form-field" style="max-width:130px;">
+                    <label>Date fin contrat</label>
+                    <input type="text" id="pDateFin" placeholder="">
+                </div>
+                <div style="align-self:flex-end;">
+                    <button class="btn btn-green" id="btnAddPersonnel" onclick="savePersonnel()">➕ Ajouter</button>
+                    <button class="btn btn-dark" id="btnCancelPersonnel" onclick="cancelPersonnelEdit()" style="display:none;">✕ Annuler</button>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <input type="file" id="fileImportPersonnel" accept=".xlsx,.xls" onchange="importConfigExcel(event,'personnel')">
+                <label for="fileImportPersonnel" class="upload-btn" style="font-size:12px;padding:6px 12px;">📥 Importer Excel</label>
+                <button class="btn btn-green" onclick="exportConfigExcel('personnel')" style="font-size:12px;padding:6px 12px;">📤 Exporter Excel</button>
+                <button class="btn btn-red" onclick="clearAll('personnel')" style="font-size:12px;padding:6px 12px;">🗑 Tout supprimer</button>
+            </div>
+            <div class="cfg-list">
+                <table class="cfg-table" id="tblPersonnel">
+                    <thead><tr><th>Nom</th><th>Prénom</th><th>Poste</th><th>Lieu</th><th>Contrat</th><th>Date entrée</th><th>Date fin contrat</th><th>Actions</th></tr></thead>
+                    <tbody id="tblPersonnelBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- LIEUX -->
+        <div id="cfgLieux" class="cfg-tab-content">
+            <div class="form-row" id="lieuFormRow">
+                <div class="form-field">
+                    <label>Lieu *</label>
+                    <input type="text" id="lNom" placeholder="Bureau Médical">
+                </div>
+                <div class="form-field">
+                    <label>Type</label>
+                    <select id="lType">
+                        <option value="Unité de vie">Unité de vie</option>
+                        <option value="Atelier">Atelier</option>
+                        <option value="Bureau">Bureau</option>
+                        <option value="Salle">Salle</option>
+                        <option value="Service">Service</option>
+                        <option value="Autre">Autre</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>Bâtiment</label>
+                    <select id="lBat">
+                        <option value="Bâtiment A">Bâtiment A</option>
+                        <option value="Bâtiment B">Bâtiment B</option>
+                        <option value="Spéciale">Spéciale</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>Étage</label>
+                    <select id="lEtage">
+                        <option value="RDC">RDC</option>
+                        <option value="1er étage">1er étage</option>
+                        <option value="2ème étage">2ème étage</option>
+                        <option value="Sous-sol">Sous-sol</option>
+                    </select>
+                </div>
+                <div class="form-field" style="max-width:100px;">
+                    <label>Zone PPMS</label>
+                    <select id="lZonePpms">
+                        <option value="Non">Non</option>
+                        <option value="Oui">Oui</option>
+                    </select>
+                </div>
+                <div style="align-self:flex-end;">
+                    <button class="btn btn-green" id="btnAddLieu" onclick="saveLieu()">➕ Ajouter</button>
+                    <button class="btn btn-dark" id="btnCancelLieu" onclick="cancelLieuEdit()" style="display:none;">✕ Annuler</button>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <input type="file" id="fileImportLieux" accept=".xlsx,.xls" onchange="importConfigExcel(event,'lieux')" style="display:none;">
+                <label for="fileImportLieux" class="upload-btn" style="font-size:12px;padding:6px 12px;">📥 Importer Excel</label>
+                <button class="btn btn-green" onclick="exportConfigExcel('lieux')" style="font-size:12px;padding:6px 12px;">📤 Exporter Excel</button>
+                <button class="btn btn-red" onclick="clearAll('lieux')" style="font-size:12px;padding:6px 12px;">🗑 Tout supprimer</button>
+            </div>
+            <div class="cfg-list">
+                <table class="cfg-table" id="tblLieux">
+                    <thead><tr><th>Lieu</th><th>Type</th><th>Bâtiment</th><th>Étage</th><th>Zone PPMS</th><th>Actions</th></tr></thead>
+                    <tbody id="tblLieuxBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- RÈGLES PPMS -->
+        <div id="cfgRegles" class="cfg-tab-content">
+            <p style="color:#1976d2;font-size:13px;margin-bottom:10px;">
+                🔷 Ce tableau pilote les affectations PPMS par scénario.<br>
+                Pour l'intrusion interne, le mode conseillé reste : <strong>Confinement sur place</strong>.
+            </p>
+            <div class="cfg-list" style="max-height:360px;">
+                <table class="cfg-table" id="tblRegles" style="font-size:11px;">
+                    <thead><tr>
+                        <th>Lieu</th><th>Bâtiment</th><th>Étage</th>
+                        <th>PPMS normal</th><th>Intrusion ext.</th><th>Intrusion int.</th>
+                        <th>Attentat</th><th>Accident</th><th>Tempête</th><th>Inondation</th>
+                    </tr></thead>
+                    <tbody id="tblReglesBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ENFANTS -->
+        <div id="cfgEnfants" class="cfg-tab-content">
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Nom *</label>
+                    <input type="text" id="eNom" placeholder="MARTIN">
+                </div>
+                <div class="form-field">
+                    <label>Prénom *</label>
+                    <input type="text" id="ePrenom" placeholder="Lucas">
+                </div>
+                <div class="form-field">
+                    <label>Groupe</label>
+                    <input type="text" id="eGroupe" placeholder="Les Phoenix">
+                </div>
+                <div class="form-field" style="min-width:180px;">
+                    <label>Zone PPMS</label>
+                    <select id="eZone"></select>
+                </div>
+                <div style="align-self:flex-end;">
+                    <button class="btn btn-green" id="btnAddEnfants" onclick="saveEnfant()">➕ Ajouter</button>
+                    <button class="btn btn-dark" id="btnCancelEnfants" onclick="cancelEnfantEdit()" style="display:none;">✕ Annuler</button>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px;">
+                <input type="file" id="fileImportEnfants" accept=".xlsx,.xls" onchange="importConfigExcel(event,'enfants')">
+                <label for="fileImportEnfants" class="upload-btn" style="background:#64b5f6;font-size:12px;padding:6px 12px;">📥 Importer Excel</label>
+                <button class="btn btn-green" onclick="exportConfigExcel('enfants')" style="font-size:12px;padding:6px 12px;">📤 Exporter Excel</button>
+                <button class="btn btn-red" onclick="clearAll('enfants')" style="font-size:12px;padding:6px 12px;">🗑 Tout supprimer</button>
+            </div>
+            <div class="cfg-list">
+                <table class="cfg-table" id="tblEnfants">
+                    <thead><tr><th>Nom</th><th>Prénom</th><th>Groupe</th><th>Zone PPMS</th><th>Actions</th></tr></thead>
+                    <tbody id="tblEnfantsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-dark" onclick="closeConfig()">✕ Fermer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── SCENARIO ─────────────────────────────────────────────────────────── -->
+<div id="modalScenario" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">
+            ⚙️ Configuration du Scénario PPMS
+            <button class="modal-close" onclick="closeScenario()">×</button>
+        </div>
+        <div class="sc-field">
+            <label>📝 Type de scénario :</label>
+            <select id="scType" onchange="updateScenarioText()">
+                <option value="intrusion-externe">🚨 Intrusion dans établissement voisin</option>
+                <option value="intrusion-interne">🚨 Intrusion au sein de l'établissement</option>
+                <option value="attentat">💣 Alerte attentat</option>
+                <option value="incendie">🔥 Incendie à proximité</option>
+                <option value="accident">⚠️ Accident chimique/industriel</option>
+                <option value="tempete">🌪️ Tempête / Vents violents</option>
+                <option value="inondation">🌊 Inondation / Crue</option>
+                <option value="seisme">🌍 Tremblement de terre</option>
+                <option value="personnalise">✏️ Scénario personnalisé</option>
+            </select>
+        </div>
+        <div class="sc-field">
+            <label>📄 Description du scénario :</label>
+            <textarea id="scDescription" rows="4"></textarea>
+            <small style="color:#666;">Cette description apparaîtra dans le rapport Excel</small>
+        </div>
+        <div class="sc-field">
+            <label>🎯 Objectifs de l'exercice :</label>
+            <textarea id="scObjectifs" rows="6"></textarea>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-red" onclick="closeScenario()">❌ Annuler</button>
+            <button class="btn btn-green" onclick="saveScenario()">✅ Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── AUTRE ZONE ────────────────────────────────────────────────────────── -->
+<div id="modalAutreZone" class="modal-overlay">
+    <div class="modal-box sm">
+        <div class="modal-title">
+            ↔ Choisir une autre zone
+            <button class="modal-close" onclick="closeAutreZone()">×</button>
+        </div>
+        <div id="autreZoneList" style="max-height:400px;overflow-y:auto;"></div>
+        <div class="modal-actions">
+            <button class="btn btn-red" onclick="closeAutreZone()">❌ Annuler</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── ADD PERSON ────────────────────────────────────────────────────────── -->
+<div id="modalAddPerson" class="modal-overlay">
+    <div class="modal-box sm">
+        <div class="modal-title">
+            ➕ Ajouter une personne
+            <button class="modal-close" onclick="closeAddPerson()">×</button>
+        </div>
+        <input type="text" id="apNom" class="modal-input" placeholder="Nom">
+        <input type="text" id="apPrenom" class="modal-input" placeholder="Prénom">
+        <div class="modal-actions">
+            <button class="btn btn-red" onclick="closeAddPerson()">❌ Annuler</button>
+            <button class="btn btn-green" onclick="confirmAddPerson()">✅ Ajouter</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────────────────────────────────
+// CONSTANTES
+// ─────────────────────────────────────────────────────────────────────────
+const KEY_CONFIG  = 'ppms_config_v2';
+const KEY_EXER    = 'ppms_exercise_v2';
+
+const SCENARIOS_DATA = {
+    'intrusion-externe': {
+        description: "Une intrusion a été signalée dans un établissement situé à 400 mètres.\nPar mesure de précaution, notre établissement active le Plan Particulier\nde Mise en Sûreté (PPMS) et met tous les occupants à l'abri.",
+        objectifs: "- Vérifier la localisation de toutes les personnes (personnel et enfants)\n- Assurer la mise à l'abri dans les zones sécurisées\n- Comptabiliser les présents, absents et personnes déplacées\n- Tester l'efficacité du dispositif de mise en sûreté"
+    },
+    'intrusion-interne': {
+        description: "Un individu suspect a pénétré dans l'enceinte de l'établissement.\nDéclenchement immédiat du PPMS intrusion : rejoindre RAPIDEMENT la zone\nde confinement si elle est proche (à vue), sinon SE CONFINER LÀ OÙ ON EST.\nNe jamais circuler dans les couloirs si la menace est présente.",
+        objectifs: "- Rejoindre la zone de confinement SI ELLE EST PROCHE ET VISIBLE\n- Sinon : SE CONFINER IMMÉDIATEMENT LÀ OÙ ON EST\n- Verrouillage immédiat des portes à clé et fermeture des volets\n- Extinction des lumières et respect absolu du silence\n- S'éloigner des portes et fenêtres, se cacher si possible\n- Attendre les consignes des forces de l'ordre"
+    },
+    'attentat': {
+        description: "Alerte attentat déclenchée par les autorités dans le secteur.\nL'établissement active le PPMS attentat-intrusion avec mise à l'abri\net confinement total de tous les occupants.",
+        objectifs: "- Confinement immédiat dans les zones les plus protégées\n- Verrouillage complet des accès (portes, fenêtres, volets)\n- Extinction des lumières et silence total\n- Comptabilisation discrète des présents\n- Communication uniquement avec les autorités"
+    },
+    'incendie': {
+        description: "Un incendie s'est déclaré dans un bâtiment à proximité de l'établissement.\nPar mesure de sécurité, activation du PPMS avec confinement des occupants\ndans les zones éloignées du foyer et fermeture des ouvrants.",
+        objectifs: "- Confiner toutes les personnes dans les zones sécurisées\n- Fermer toutes les fenêtres et portes extérieures\n- Arrêter la ventilation pour éviter l'entrée de fumées\n- Comptabiliser les présents et absents\n- Préparer une éventuelle évacuation si nécessaire"
+    },
+    'accident': {
+        description: "Un accident industriel impliquant des matières dangereuses a eu lieu\nà proximité de l'établissement. Activation du PPMS avec confinement total.",
+        objectifs: "- Confinement hermétique de toutes les personnes\n- Arrêt immédiat de la ventilation et climatisation\n- Fermeture de tous les ouvrants (portes, fenêtres)\n- Comptabilisation des présents\n- Attendre les consignes de la Préfecture"
+    },
+    'tempete': {
+        description: "Alerte météorologique orange/rouge pour tempête violente.\nMise à l'abri de tous les occupants dans les zones intérieures.",
+        objectifs: "- Évacuation des zones extérieures et préaux\n- Mise à l'abri dans les couloirs et pièces sans fenêtres\n- Éloignement des baies vitrées et des arbres\n- Comptabilisation de tous les occupants\n- Surveillance de l'évolution météorologique"
+    },
+    'inondation': {
+        description: "Alerte crue avec risque d'inondation rapide.\nÉvacuation préventive des sous-sols et rez-de-chaussée.",
+        objectifs: "- Évacuation immédiate des niveaux bas (sous-sols, RDC)\n- Regroupement aux étages supérieurs\n- Sécurisation du matériel électrique et des archives\n- Comptabilisation complète des présents"
+    },
+    'seisme': {
+        description: "Exercice de mise en sûreté en cas de séisme.\nApplication des consignes de protection.",
+        objectifs: "- Application de la consigne \"Se baisser, Se protéger, S'accrocher\"\n- Mise à l'abri sous les tables ou contre les murs porteurs\n- Éloignement des fenêtres et objets susceptibles de tomber\n- Comptabilisation après la secousse\n- Évacuation ordonnée si le bâtiment est endommagé"
+    },
+    'personnalise': { description: '', objectifs: '' }
+};
+
+// Mapping lieux réels → zones PPMS (slugs)
+const MAPPING_LIEUX = {
+    'les albatros':         'les-choucas',
+    'albatros':             'les-choucas',
+    'les choucas':          'les-choucas',
+    'choucas':              'les-choucas',
+    'les phoenix':          'les-phoenix',
+    'phoenix':              'les-phoenix',
+    'les cigognes':         'les-cigognes',
+    'cigognes':             'les-cigognes',
+    'les canaris':          'les-cigognes',
+    'canaris':              'les-cigognes',
+    'cuisine':              'les-cigognes',
+    'les perroquets':       'les-perroquets',
+    'perroquets':           'les-perroquets',
+    'les colombes':         'les-perroquets',
+    'colombes':             'les-perroquets',
+    'bureau administratif': 'bureau-assistante',
+    'bureau-administratif': 'bureau-assistante',
+    'bureau assistante':    'bureau-assistante',
+    'bureau médical':       'infirmerie',
+    'bureau medical':       'infirmerie',
+    'infirmerie':           'infirmerie',
+    'atelier zartistes':    'atelier-zartistes',
+    "atelier z'artiste":    'atelier-zartistes',
+    "atelier z'adulte 1":   'atelier-zartistes',
+    "atelier z'adulte 2":   'atelier-zartistes',
+    "atelier z'adulte 3":   'atelier-zartistes',
+    'atelier rap':          'atelier-zartistes',
+    "atelier curiosité":    'atelier-zartistes',
+    'atelier restauration': 'atelier-restauration',
+    'classe 1':             'atelier-restauration',
+    'classe 2':             'atelier-restauration',
+    'classe 3':             'atelier-restauration',
+    'classe 4':             'atelier-restauration',
+    'atelier bois':         'atelier-restauration',
+    'atelier hel':          'atelier-restauration',
+    'atelier horticulture': 'atelier-restauration',
+    'gymnase':              'atelier-restauration',
+};
+
+// Zones par défaut (comme Business Manager)
+// Données par défaut depuis Modele_Referentiel.xlsx
+const DEFAULT_CONFIG = {"zones":[{"id":1,"nom":"Les Choucas","slug":"les-choucas","batiment":"Bâtiment A","icone":"🐦","etage":"1er étage","telephone":""},{"id":2,"nom":"Les Perroquets","slug":"les-perroquets","batiment":"Bâtiment A","icone":"🦜","etage":"1er étage","telephone":""},{"id":3,"nom":"Les Cigognes","slug":"les-cigognes","batiment":"Bâtiment A","icone":"🦢","etage":"RDC","telephone":""},{"id":4,"nom":"Les Phoenix","slug":"les-phoenix","batiment":"Bâtiment A","icone":"🔥","etage":"RDC","telephone":""},{"id":5,"nom":"Atelier Zartistes","slug":"atelier-zartistes","batiment":"Bâtiment B","icone":"🎨","etage":"1er étage","telephone":""},{"id":6,"nom":"Bureau Assistante","slug":"bureau-assistante","batiment":"Bâtiment B","icone":"💼","etage":"1er étage","telephone":""},{"id":7,"nom":"Atelier Restauration","slug":"atelier-restauration","batiment":"Bâtiment B","icone":"🍽️","etage":"RDC","telephone":""},{"id":8,"nom":"Infirmerie","slug":"infirmerie","batiment":"Bâtiment B","icone":"🏥","etage":"RDC","telephone":""},{"id":9,"nom":"Sortie Extérieure","slug":"sortie-exterieure","batiment":"Spéciale","icone":"🚌","etage":"","telephone":""}],"personnel":[{"id":1,"nom":"ABDEREMAN","prenom":"Asmahane","poste":"Maîtresse de maison","lieu":"Les Colombes","contrat":"CDI","date_entree":"10-03-2022","date_fin":""},{"id":2,"nom":"ALI-MMADI","prenom":"Nouria","poste":"Aide médico psychologique","lieu":"Les Colombes","contrat":"CDI","date_entree":"01-01-2020","date_fin":""},{"id":3,"nom":"AMZALLAG","prenom":"Micheline","poste":"Médecin Généraliste","lieu":"Bureau Médical","contrat":"CDD","date_entree":"01-01-2025","date_fin":"28-02-2026"},{"id":4,"nom":"ARNETON","prenom":"Nelly","poste":"Surveillant de nuit","lieu":"","contrat":"CDI","date_entree":"01-02-2022","date_fin":""},{"id":5,"nom":"ATMANI","prenom":"Salim-Aïssa","poste":"Educateur spécialisé","lieu":"Les Canaris","contrat":"CDD","date_entree":"01-06-2020","date_fin":""},{"id":6,"nom":"AURELA","prenom":"Hasley","poste":"Moniteur éducateur","lieu":"Les Choucas","contrat":"CDI","date_entree":"15-06-2019","date_fin":""},{"id":7,"nom":"BAHRI JEBLAOUI","prenom":"MYRIAM","poste":"Moniteur d'enseignement ménager","lieu":"","contrat":"CDI","date_entree":"15-01-2018","date_fin":""},{"id":8,"nom":"BARAKAT","prenom":"Halima","poste":"Psychomotricien","lieu":"Bureau Médical","contrat":"CDI","date_entree":"01-09-2024","date_fin":""},{"id":9,"nom":"BEDAD","prenom":"FADILA","poste":"Educateur spécialisé","lieu":"","contrat":"CDI","date_entree":"01-09-2024","date_fin":""},{"id":10,"nom":"BELDJORD","prenom":"Leila","poste":"Assistant(e) Administratif","lieu":"Bureau Administratif","contrat":"CDI","date_entree":"20-04-2019","date_fin":""},{"id":11,"nom":"BINON","prenom":"Joëlle","poste":"","lieu":"Bureau Médical","contrat":"Intervenant ext","date_entree":"","date_fin":""},{"id":12,"nom":"BOEDARD","prenom":"Kevin","poste":"Educateur technique","lieu":"Les Cigognes","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":13,"nom":"BOSQUET","prenom":"Hongyan","poste":"Maîtresse de maison","lieu":"Les Choucas","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":14,"nom":"BOUISSOU","prenom":"STEPHANIE","poste":"Moniteur adjoint d'animation et/ou d'activités","lieu":"Les Cigognes","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":15,"nom":"BOUZAGHOU","prenom":"SABRINA","poste":"Maîtresse de maison","lieu":"Les Phoenix","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":16,"nom":"BRIZET","prenom":"Celine","poste":"","lieu":"Classe 1","contrat":"Intervenant ext","date_entree":"","date_fin":""},{"id":17,"nom":"CHARLES","prenom":"Ducton","poste":"","lieu":"Classe 4","contrat":"Intervenant ext","date_entree":"","date_fin":""},{"id":18,"nom":"CHARNEAU","prenom":"PASKAL","poste":"Moniteur adjoint d'animation et/ou d'activités","lieu":"Les Albatros","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":19,"nom":"CHEBIRI","prenom":"IMEN","poste":"Maîtresse de maison","lieu":"","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":20,"nom":"CHRETIEN","prenom":"NICOLE","poste":"Moniteur éducateur","lieu":"","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":21,"nom":"COULIBALY","prenom":"Nanko","poste":"Agent d'entretien","lieu":"Les Perroquets","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":22,"nom":"CRESTE","prenom":"Solena","poste":"Infirmier","lieu":"Bureau Médical","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":23,"nom":"DAHO","prenom":"Yasmina","poste":"Moniteur éducateur","lieu":"","contrat":"CDD","date_entree":"01-09-2025","date_fin":"17-06-2026"},{"id":24,"nom":"DAO","prenom":"LOZENY","poste":"Surveillant de nuit","lieu":"","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":25,"nom":"DAVID","prenom":"Marie Agnes","poste":"chef de service éducatif","lieu":"Bureau Administratif","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":26,"nom":"DE SOUZA","prenom":"CYNTHIA","poste":"Educateur spécialisé","lieu":"Les Perroquets","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":27,"nom":"DES CHAMPS","prenom":"OCEANE","poste":"Moniteur éducateur","lieu":"Les Colombes","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":28,"nom":"DIARRA","prenom":"DJENEBA","poste":"Maîtresse de maison","lieu":"Les Albatros","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":29,"nom":"DORRYHEE","prenom":"MICHELINE","poste":"Educateur spécialisé","lieu":"Les Phoenix","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":30,"nom":"DOS REIS BORGES","prenom":"Amandine","poste":"Moniteur éducateur","lieu":"Les Canaris","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":31,"nom":"DOUCET DO LIVRAMENTO","prenom":"Emma Louise","poste":"Candidat élève Educateur spécialisé","lieu":"Les Choucas","contrat":"Stage","date_entree":"01-09-2025","date_fin":"10-07-2026"},{"id":32,"nom":"DUBOIS","prenom":"NATHALIE","poste":"Educateur spécialisé","lieu":"Les Perroquets","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":33,"nom":"EMMANUEL","prenom":"Willem","poste":"Educateur spécialisé","lieu":"Les Canaris","contrat":"CDD","date_entree":"01-09-2025","date_fin":"29-06-2026"},{"id":34,"nom":"ESAT","prenom":"Tarik","poste":"","lieu":"Cuisine","contrat":"Intervenant ext","date_entree":"","date_fin":""},{"id":35,"nom":"ESAT","prenom":"Michel","poste":"","lieu":"Cuisine","contrat":"Intervenant ext","date_entree":"","date_fin":""},{"id":36,"nom":"FERREIRA","prenom":"Maelle","poste":"Professeur d'éducation physique et sportive","lieu":"Les Canaris","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":37,"nom":"FOTIN","prenom":"Solen","poste":"Moniteur adjoint d'animation et/ou d'activités","lieu":"","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":38,"nom":"GARY","prenom":"Hadjia","poste":"Moniteur adjoint d'animation et/ou d'activités","lieu":"Les Canaris","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":39,"nom":"GAUGUIN","prenom":"Mélina","poste":"Educateur spécialisé","lieu":"Les Colombes","contrat":"Stage","date_entree":"01-09-2025","date_fin":"30-04-2026"},{"id":40,"nom":"GIRAUDEAU","prenom":"SANDRA","poste":"Directeur","lieu":"Bureau Administratif","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":41,"nom":"GRAFON","prenom":"Patrice","poste":"Educateur spécialisé","lieu":"Les Phoenix","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":42,"nom":"GUILLAUME","prenom":"Marie","poste":"Moniteur éducateur","lieu":"Les Canaris","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":43,"nom":"HAIDARA","prenom":"FATOUMATA","poste":"Agent d'entretien","lieu":"","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":44,"nom":"HAMACHE","prenom":"MALIK","poste":"Cadre Technicien","lieu":"Bureau Administratif","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":45,"nom":"HECQUET","prenom":"Isabelle","poste":"Psychologue","lieu":"Bureau Médical","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":46,"nom":"HUET","prenom":"Gabrielle","poste":"","lieu":"Classe 3","contrat":"Intervenant ext","date_entree":"","date_fin":""},{"id":47,"nom":"IRSANE","prenom":"NASSIMA","poste":"Agent d'entretien","lieu":"Bureau Médical","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":48,"nom":"KHENNOUCHE","prenom":"HAMID","poste":"Moniteur éducateur","lieu":"Les Phoenix","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":49,"nom":"LACUGNE","prenom":"EMMA","poste":"Educateur spécialisé","lieu":"Les Perroquets","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":50,"nom":"LAUNAY","prenom":"RAYMOND","poste":"Ouvrier entretien qualifié","lieu":"Les Phoenix","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":51,"nom":"LOPEZ","prenom":"Sophie","poste":"","lieu":"Classe 2","contrat":"Intervenant ext","date_entree":"","date_fin":""},{"id":52,"nom":"MARE--ALABASTRI","prenom":"Elsa","poste":"Infirmier","lieu":"Bureau Médical","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":53,"nom":"MERIDAN","prenom":"Joelle","poste":"Assistante sociale","lieu":"Bureau Administratif","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":54,"nom":"MOSENGO","prenom":"Kezia","poste":"Moniteur adjoint d'animation et/ou d'activités","lieu":"Les Choucas","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":55,"nom":"OSSEDAT","prenom":"OLIVIA","poste":"Secrétaire de direction","lieu":"Bureau Administratif","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":56,"nom":"PAOLI SAMBAGOTO","prenom":"Cindy-Marthe","poste":"Infirmier","lieu":"","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":57,"nom":"PARLOT","prenom":"JEROME","poste":"Educateur technique","lieu":"Les Cigognes","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":58,"nom":"PATERNOSTRE","prenom":"Jeremy","poste":"Moniteur adjoint d'animation et/ou d'activités","lieu":"","contrat":"CDD","date_entree":"01-09-2025","date_fin":"17-07-2026"},{"id":59,"nom":"PHILIPPON","prenom":"Jeanne Cloe","poste":"Educateur spécialisé","lieu":"Les Choucas","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":60,"nom":"ROMANIELLO","prenom":"Khadidja","poste":"Educateur spécialisé","lieu":"","contrat":"Stage","date_entree":"01-09-2025","date_fin":"17-07-2026"},{"id":61,"nom":"RUGGIERO","prenom":"JEROME","poste":"Educateur technique spécialisé","lieu":"Les Cigognes","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":62,"nom":"SEKHRI","prenom":"Aicha Annie","poste":"Moniteur éducateur","lieu":"Les Choucas","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":63,"nom":"SIMONET","prenom":"CHARLINE","poste":"Moniteur éducateur","lieu":"Les Phoenix","contrat":"CDI","date_entree":"01-09-2025","date_fin":""},{"id":64,"nom":"SIMOUILLARD","prenom":"ALEXANDRE","poste":"Educateur spécialisé","lieu":"Les Albatros","contrat":"CDI","date_entree":"01-09-2026","date_fin":""},{"id":65,"nom":"SOCIETE","prenom":"Latifa","poste":"","lieu":"Les Cigognes","contrat":"Intervenant ext","date_entree":"","date_fin":""},{"id":66,"nom":"SOULARD","prenom":"Nina","poste":"Psychologue","lieu":"Bureau Médical","contrat":"CDI","date_entree":"01-09-2027","date_fin":""},{"id":67,"nom":"SQUARCIONI","prenom":"Gabrielle","poste":"Psychiatre ou neuro-psychiatre","lieu":"Bureau Médical","contrat":"CDI","date_entree":"01-09-2028","date_fin":""},{"id":68,"nom":"TALEB","prenom":"ISMA","poste":"Moniteur éducateur","lieu":"Les Colombes","contrat":"CDI","date_entree":"01-09-2029","date_fin":""},{"id":69,"nom":"TANG","prenom":"Annie","poste":"Aide médico psychologique","lieu":"Les Canaris","contrat":"CDI","date_entree":"01-09-2030","date_fin":""},{"id":70,"nom":"THOMAS","prenom":"CORALIE","poste":"Moniteur éducateur","lieu":"Les Albatros","contrat":"CDI","date_entree":"01-09-2031","date_fin":""},{"id":71,"nom":"TISSERANT","prenom":"MURIELLE","poste":"chef de service éducatif","lieu":"Bureau Administratif","contrat":"CDI","date_entree":"01-09-2032","date_fin":""},{"id":72,"nom":"TUZET KHENICHE","prenom":"CAMILLE","poste":"Educateur technique spécialisé","lieu":"Les Cigognes","contrat":"CDI","date_entree":"01-09-2033","date_fin":""},{"id":73,"nom":"VAN HEULE","prenom":"Amandine","poste":"Moniteur éducateur","lieu":"Les Canaris","contrat":"CDI","date_entree":"01-09-2034","date_fin":""},{"id":74,"nom":"VITALREST","prenom":"Diana","poste":"","lieu":"Cuisine","contrat":"Intervenant ext","date_entree":"","date_fin":""},{"id":75,"nom":"VITALREST","prenom":"Paola","poste":"","lieu":"Cuisine","contrat":"Intervenant ext","date_entree":"","date_fin":""},{"id":76,"nom":"YEKKEN","prenom":"ROSA","poste":"Commis de Cuisine","lieu":"Cuisine","contrat":"CDI","date_entree":"","date_fin":""},{"id":77,"nom":"ZAKROUM","prenom":"Mounia","poste":"","lieu":"Classe 4","contrat":"Intervenant ext","date_entree":"","date_fin":""}],"enfants":[{"id":1,"nom":"ABBADI","prenom":"Arwa","groupe":"Les Cigognes"},{"id":2,"nom":"ACAKPOADDRA","prenom":"RUDY","groupe":"Les Cigognes"},{"id":3,"nom":"ALAHO","prenom":"Keenan","groupe":"Les Phoenix"},{"id":4,"nom":"ALI MADI","prenom":"SAM","groupe":"Les Phoenix"},{"id":5,"nom":"AMON KALFA","prenom":"ASTRID","groupe":"Les Colombes"},{"id":6,"nom":"BAPTISTA BUISSET","prenom":"ZOE","groupe":"Les Perroquets"},{"id":7,"nom":"BARRY","prenom":"MARIAMA","groupe":"Les Cigognes"},{"id":8,"nom":"BAZIERE","prenom":"CORENTIN","groupe":"Les Cigognes"},{"id":9,"nom":"BELHARET","prenom":"AYA","groupe":"Les Perroquets"},{"id":10,"nom":"BENAROCH","prenom":"SARAH","groupe":"Les Perroquets"},{"id":11,"nom":"BERETE","prenom":"SAID","groupe":"Les Choucas"},{"id":12,"nom":"BERETE","prenom":"SONIA","groupe":"Les Perroquets"},{"id":13,"nom":"BLONDEL","prenom":"LEA","groupe":"Les Cigognes"},{"id":14,"nom":"BLUTOU","prenom":"MARION","groupe":"Les Canaris"},{"id":15,"nom":"BOUARD","prenom":"SHONA","groupe":"Les Perroquets"},{"id":16,"nom":"BOUJJA","prenom":"ISSAM","groupe":"Les Cigognes"},{"id":17,"nom":"BOULHAROUF","prenom":"MAYSSA","groupe":"Les Colombes"},{"id":18,"nom":"CASSAR","prenom":"CHLOE","groupe":"Les Colombes"},{"id":19,"nom":"CHE-THE-FON","prenom":"ABEL","groupe":"Les Albatros"},{"id":20,"nom":"CHEGRI","prenom":"YANIS","groupe":"Les Phoenix"},{"id":21,"nom":"CHILIH","prenom":"INES","groupe":"Les Cigognes"},{"id":22,"nom":"CUCURMONT","prenom":"GIOVANNI","groupe":"Les Canaris"},{"id":23,"nom":"DAMOTTE","prenom":"MAELY","groupe":"Les Colombes"},{"id":24,"nom":"DE ALMEIDA","prenom":"LAURA","groupe":"Les Perroquets"},{"id":25,"nom":"DIAKHATE","prenom":"LASSANA","groupe":"Les Albatros"},{"id":26,"nom":"DJALO","prenom":"YOUSSOUF","groupe":"Les Albatros"},{"id":27,"nom":"DJIETCHEU","prenom":"JEAN-DERRICK","groupe":"Les Cigognes"},{"id":28,"nom":"DOS REIS CASTRO","prenom":"ALINE","groupe":"Les Colombes"},{"id":29,"nom":"EL BERKANI","prenom":"ANAIS","groupe":"Les Perroquets"},{"id":30,"nom":"ELKHA","prenom":"SIRINE","groupe":"Les Colombes"},{"id":31,"nom":"FOFANA BIGET","prenom":"ISMAEL","groupe":"Les Phoenix"},{"id":32,"nom":"FRIDA","prenom":"FATIMA SARA","groupe":"Les Perroquets"},{"id":33,"nom":"GHARAB","prenom":"SALMENE","groupe":"Les Choucas"},{"id":34,"nom":"GOVINDORAZOO","prenom":"WYLLIAMS","groupe":"Les Albatros"},{"id":35,"nom":"GREGOIRE","prenom":"MAXIME","groupe":"Les Cigognes"},{"id":36,"nom":"GUILPAIN","prenom":"LOANE","groupe":"Les Colombes"},{"id":37,"nom":"HADJADJE BECHARD","prenom":"MATHYS","groupe":"Les Canaris"},{"id":38,"nom":"HAMRI","prenom":"ALINE YANIS","groupe":"Les Cigognes"},{"id":39,"nom":"HERAULT","prenom":"Alexandre","groupe":"Les Canaris"},{"id":40,"nom":"HOCINE","prenom":"KENZO","groupe":"Les Albatros"},{"id":41,"nom":"JEAN","prenom":"BRAYAN","groupe":"Les Choucas"},{"id":42,"nom":"KARAMOKO","prenom":"DJIBRIL","groupe":"Les Cigognes"},{"id":43,"nom":"KENNOUCHE","prenom":"ELIAN","groupe":"Les Phoenix"},{"id":44,"nom":"KPAN","prenom":"SAMUEL GUELANON","groupe":"Les Albatros"},{"id":45,"nom":"LEGRAND","prenom":"MARLEY","groupe":"Les Phoenix"},{"id":46,"nom":"LEGRAND","prenom":"ENZO","groupe":"Les Albatros"},{"id":47,"nom":"LEPAGE","prenom":"ALEXANDRE","groupe":"Les Albatros"},{"id":48,"nom":"MEHDAOUI","prenom":"INES","groupe":"Les Colombes"},{"id":49,"nom":"MEKKI","prenom":"SYRINE","groupe":"Les Colombes"},{"id":50,"nom":"MESBAH","prenom":"SANAE","groupe":"Les Perroquets"},{"id":51,"nom":"MOLLOIS","prenom":"LOUIS","groupe":"Les Cigognes"},{"id":52,"nom":"PERSIGNAT","prenom":"MARCO","groupe":"Les Choucas"},{"id":53,"nom":"PINHAS MEYER","prenom":"LEONARD","groupe":"Les Choucas"},{"id":54,"nom":"RADUCAN","prenom":"IUSTINA","groupe":"Les Perroquets"},{"id":55,"nom":"RAHMAN","prenom":"TAHMIDUR","groupe":"Les Choucas"},{"id":56,"nom":"RILLIET","prenom":"BATISTE","groupe":"Les Albatros"},{"id":57,"nom":"SAKO","prenom":"ALY","groupe":"Les Canaris"},{"id":58,"nom":"SAYANTHAN","prenom":"SHARANKIE","groupe":"Les Cigognes"},{"id":59,"nom":"SEVAUX","prenom":"TOM","groupe":"Les Choucas"},{"id":60,"nom":"SIMINIUC","prenom":"MARIUS","groupe":"Les Choucas"},{"id":61,"nom":"SIMON","prenom":"AYMERIC","groupe":"Les Canaris"},{"id":62,"nom":"STOROGE DE CLAUSADE","prenom":"VADIM","groupe":"Les Choucas"},{"id":63,"nom":"TALHA","prenom":"HALIMA","groupe":"Les Canaris"},{"id":64,"nom":"TAVARES DA LOMBA","prenom":"DENILSON","groupe":"Les Canaris"},{"id":65,"nom":"THIERY","prenom":"FLORIAN","groupe":"Les Albatros"},{"id":66,"nom":"TLOIE","prenom":"ETHANN","groupe":"Les Canaris"},{"id":67,"nom":"TOURE","prenom":"SIDY KYLIANE","groupe":"Les Phoenix"},{"id":68,"nom":"TRAORE","prenom":"MODY","groupe":"Les Phoenix"},{"id":69,"nom":"TRUFFERT","prenom":"MALOYA","groupe":"Les Colombes"},{"id":70,"nom":"VRINDTS","prenom":"VALENTIN","groupe":"Les Cigognes"},{"id":71,"nom":"WALTER","prenom":"Melina","groupe":"Les Canaris"},{"id":72,"nom":"ZABACHI","prenom":"FATIMA","groupe":"Les Canaris"},{"id":73,"nom":"ZEMSTA","prenom":"DOMINIQUE","groupe":"Les Cigognes"},{"id":74,"nom":"ZOUARI","prenom":"EVE","groupe":"Les Cigognes"}],"lieux":[{"id":1,"nom":"Atelier Bois","type":"Atelier","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Non"},{"id":2,"nom":"Atelier Curiosité","type":"Atelier","batiment":"Bâtiment B","etage":"1er étage","zone_ppms":"Non"},{"id":3,"nom":"Atelier Hel","type":"Atelier","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Non"},{"id":4,"nom":"Atelier Horticulture","type":"Atelier","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Non"},{"id":5,"nom":"Atelier RAP","type":"Atelier","batiment":"Bâtiment B","etage":"1er étage","zone_ppms":"Non"},{"id":6,"nom":"Atelier Restauration","type":"Atelier","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Oui"},{"id":7,"nom":"Atelier Z'adulte 1","type":"Atelier","batiment":"Bâtiment B","etage":"1er étage","zone_ppms":"Non"},{"id":8,"nom":"Atelier Z'adulte 2","type":"Atelier","batiment":"Bâtiment B","etage":"1er étage","zone_ppms":"Non"},{"id":9,"nom":"Atelier Z'adulte 3","type":"Atelier","batiment":"Bâtiment B","etage":"1er étage","zone_ppms":"Non"},{"id":10,"nom":"Atelier Z'artiste 2","type":"Atelier","batiment":"Bâtiment B","etage":"1er étage","zone_ppms":"Non"},{"id":11,"nom":"Atelier Zartistes","type":"Atelier","batiment":"Bâtiment B","etage":"1er étage","zone_ppms":"Oui"},{"id":12,"nom":"Bureau Administratif","type":"Bureau","batiment":"Bâtiment B","etage":"1er étage","zone_ppms":"Non"},{"id":13,"nom":"Bureau Assistante","type":"Bureau","batiment":"Bâtiment B","etage":"1er étage","zone_ppms":"Oui"},{"id":14,"nom":"Bureau Médical","type":"Bureau","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Non"},{"id":15,"nom":"Classe 1","type":"Salle","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Non"},{"id":16,"nom":"Classe 2","type":"Salle","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Non"},{"id":17,"nom":"Classe 3","type":"Salle","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Non"},{"id":18,"nom":"Classe 4","type":"Salle","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Non"},{"id":19,"nom":"Cuisine","type":"Restauration","batiment":"Bâtiment A","etage":"RDC","zone_ppms":"Non"},{"id":20,"nom":"Gymnase","type":"Salle","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Non"},{"id":21,"nom":"Infirmerie","type":"Infirmerie","batiment":"Bâtiment B","etage":"RDC","zone_ppms":"Oui"},{"id":22,"nom":"Les Albatros","type":"Unité de vie","batiment":"Bâtiment A","etage":"1er étage","zone_ppms":"Non"},{"id":23,"nom":"Les Canaris","type":"Unité de vie","batiment":"Bâtiment A","etage":"RDC","zone_ppms":"Non"},{"id":24,"nom":"Les Choucas","type":"Unité de vie","batiment":"Bâtiment A","etage":"1er étage","zone_ppms":"Oui"},{"id":25,"nom":"Les Cigognes","type":"Unité de vie","batiment":"Bâtiment A","etage":"RDC","zone_ppms":"Oui"},{"id":26,"nom":"Les Colombes","type":"Unité de vie","batiment":"Bâtiment A","etage":"1er étage","zone_ppms":"Non"},{"id":27,"nom":"Les Perroquets","type":"Unité de vie","batiment":"Bâtiment A","etage":"1er étage","zone_ppms":"Oui"},{"id":28,"nom":"Les Phoenix","type":"Unité de vie","batiment":"Bâtiment A","etage":"RDC","zone_ppms":"Oui"}],"regles":[{"id":1,"lieu":"Les Albatros","batiment":"Bâtiment A","etage":"1er étage","ppms_normal":"Les Choucas","intrusion_externe":"Les Choucas","intrusion_interne":"Confinement sur place","attentat":"Les Choucas","accident":"Les Choucas","tempete":"Les Choucas","inondation":"Les Choucas"},{"id":2,"lieu":"Les Choucas","batiment":"Bâtiment A","etage":"1er étage","ppms_normal":"Les Choucas","intrusion_externe":"Les Choucas","intrusion_interne":"Confinement sur place","attentat":"Les Choucas","accident":"Les Choucas","tempete":"Les Choucas","inondation":"Les Choucas"},{"id":3,"lieu":"Les Colombes","batiment":"Bâtiment A","etage":"1er étage","ppms_normal":"Les Perroquets","intrusion_externe":"Les Perroquets","intrusion_interne":"Confinement sur place","attentat":"Les Perroquets","accident":"Les Perroquets","tempete":"Les Perroquets","inondation":"Les Perroquets"},{"id":4,"lieu":"Les Perroquets","batiment":"Bâtiment A","etage":"1er étage","ppms_normal":"Les Perroquets","intrusion_externe":"Les Perroquets","intrusion_interne":"Confinement sur place","attentat":"Les Perroquets","accident":"Les Perroquets","tempete":"Les Perroquets","inondation":"Les Perroquets"},{"id":5,"lieu":"Cuisine","batiment":"Bâtiment A","etage":"RDC","ppms_normal":"Les Cigognes","intrusion_externe":"Les Cigognes","intrusion_interne":"Confinement sur place","attentat":"Les Cigognes","accident":"Les Cigognes","tempete":"Les Cigognes","inondation":"Les Choucas"},{"id":6,"lieu":"Les Canaris","batiment":"Bâtiment A","etage":"RDC","ppms_normal":"Les Cigognes","intrusion_externe":"Les Cigognes","intrusion_interne":"Confinement sur place","attentat":"Les Cigognes","accident":"Les Cigognes","tempete":"Les Cigognes","inondation":"Les Choucas"},{"id":7,"lieu":"Les Cigognes","batiment":"Bâtiment A","etage":"RDC","ppms_normal":"Les Cigognes","intrusion_externe":"Les Cigognes","intrusion_interne":"Confinement sur place","attentat":"Les Cigognes","accident":"Les Cigognes","tempete":"Les Cigognes","inondation":"Les Choucas"},{"id":8,"lieu":"Les Phoenix","batiment":"Bâtiment A","etage":"RDC","ppms_normal":"Les Phoenix","intrusion_externe":"Les Phoenix","intrusion_interne":"Confinement sur place","attentat":"Les Phoenix","accident":"Les Phoenix","tempete":"Les Phoenix","inondation":"Les Choucas"},{"id":9,"lieu":"Atelier Curiosité","batiment":"Bâtiment B","etage":"1er étage","ppms_normal":"Atelier Zartistes","intrusion_externe":"Atelier Zartistes","intrusion_interne":"Confinement sur place","attentat":"Atelier Zartistes","accident":"Atelier Zartistes","tempete":"Atelier Zartistes","inondation":"Atelier Zartistes"},{"id":10,"lieu":"Atelier RAP","batiment":"Bâtiment B","etage":"1er étage","ppms_normal":"Atelier Zartistes","intrusion_externe":"Atelier Zartistes","intrusion_interne":"Confinement sur place","attentat":"Atelier Zartistes","accident":"Atelier Zartistes","tempete":"Atelier Zartistes","inondation":"Atelier Zartistes"},{"id":11,"lieu":"Atelier Z'adulte 1","batiment":"Bâtiment B","etage":"1er étage","ppms_normal":"Atelier Zartistes","intrusion_externe":"Atelier Zartistes","intrusion_interne":"Confinement sur place","attentat":"Atelier Zartistes","accident":"Atelier Zartistes","tempete":"Atelier Zartistes","inondation":"Atelier Zartistes"},{"id":12,"lieu":"Atelier Z'adulte 2","batiment":"Bâtiment B","etage":"1er étage","ppms_normal":"Atelier Zartistes","intrusion_externe":"Atelier Zartistes","intrusion_interne":"Confinement sur place","attentat":"Atelier Zartistes","accident":"Atelier Zartistes","tempete":"Atelier Zartistes","inondation":"Atelier Zartistes"},{"id":13,"lieu":"Atelier Z'adulte 3","batiment":"Bâtiment B","etage":"1er étage","ppms_normal":"Atelier Zartistes","intrusion_externe":"Atelier Zartistes","intrusion_interne":"Confinement sur place","attentat":"Atelier Zartistes","accident":"Atelier Zartistes","tempete":"Atelier Zartistes","inondation":"Atelier Zartistes"},{"id":14,"lieu":"Atelier Z'artiste 2","batiment":"Bâtiment B","etage":"1er étage","ppms_normal":"Atelier Zartistes","intrusion_externe":"Atelier Zartistes","intrusion_interne":"Confinement sur place","attentat":"Atelier Zartistes","accident":"Atelier Zartistes","tempete":"Atelier Zartistes","inondation":"Atelier Zartistes"},{"id":15,"lieu":"Atelier Zartistes","batiment":"Bâtiment B","etage":"1er étage","ppms_normal":"Atelier Zartistes","intrusion_externe":"Atelier Zartistes","intrusion_interne":"Confinement sur place","attentat":"Atelier Zartistes","accident":"Atelier Zartistes","tempete":"Atelier Zartistes","inondation":"Atelier Zartistes"},{"id":16,"lieu":"Bureau Administratif","batiment":"Bâtiment B","etage":"1er étage","ppms_normal":"Bureau Assistante","intrusion_externe":"Bureau Assistante","intrusion_interne":"Confinement sur place","attentat":"Bureau Assistante","accident":"Bureau Assistante","tempete":"Bureau Assistante","inondation":"Bureau Assistante"},{"id":17,"lieu":"Bureau Assistante","batiment":"Bâtiment B","etage":"1er étage","ppms_normal":"Bureau Assistante","intrusion_externe":"Bureau Assistante","intrusion_interne":"Confinement sur place","attentat":"Bureau Assistante","accident":"Bureau Assistante","tempete":"Bureau Assistante","inondation":"Bureau Assistante"},{"id":18,"lieu":"Atelier Bois","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Atelier Restauration","intrusion_externe":"Atelier Restauration","intrusion_interne":"Confinement sur place","attentat":"Atelier Restauration","accident":"Atelier Restauration","tempete":"Atelier Restauration","inondation":"Atelier Zartistes"},{"id":19,"lieu":"Atelier Hel","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Atelier Restauration","intrusion_externe":"Atelier Restauration","intrusion_interne":"Confinement sur place","attentat":"Atelier Restauration","accident":"Atelier Restauration","tempete":"Atelier Restauration","inondation":"Atelier Zartistes"},{"id":20,"lieu":"Atelier Horticulture","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Atelier Restauration","intrusion_externe":"Atelier Restauration","intrusion_interne":"Confinement sur place","attentat":"Atelier Restauration","accident":"Atelier Restauration","tempete":"Atelier Restauration","inondation":"Atelier Zartistes"},{"id":21,"lieu":"Atelier Restauration","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Atelier Restauration","intrusion_externe":"Atelier Restauration","intrusion_interne":"Confinement sur place","attentat":"Atelier Restauration","accident":"Atelier Restauration","tempete":"Atelier Restauration","inondation":"Atelier Zartistes"},{"id":22,"lieu":"Bureau Médical","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Infirmerie","intrusion_externe":"Infirmerie","intrusion_interne":"Confinement sur place","attentat":"Infirmerie","accident":"Infirmerie","tempete":"Infirmerie","inondation":"Atelier Zartistes"},{"id":23,"lieu":"Classe 1","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Atelier Restauration","intrusion_externe":"Atelier Restauration","intrusion_interne":"Confinement sur place","attentat":"Atelier Restauration","accident":"Atelier Restauration","tempete":"Atelier Restauration","inondation":"Atelier Zartistes"},{"id":24,"lieu":"Classe 2","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Atelier Restauration","intrusion_externe":"Atelier Restauration","intrusion_interne":"Confinement sur place","attentat":"Atelier Restauration","accident":"Atelier Restauration","tempete":"Atelier Restauration","inondation":"Atelier Zartistes"},{"id":25,"lieu":"Classe 3","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Atelier Restauration","intrusion_externe":"Atelier Restauration","intrusion_interne":"Confinement sur place","attentat":"Atelier Restauration","accident":"Atelier Restauration","tempete":"Atelier Restauration","inondation":"Atelier Zartistes"},{"id":26,"lieu":"Classe 4","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Atelier Restauration","intrusion_externe":"Atelier Restauration","intrusion_interne":"Confinement sur place","attentat":"Atelier Restauration","accident":"Atelier Restauration","tempete":"Atelier Restauration","inondation":"Atelier Zartistes"},{"id":27,"lieu":"Gymnase","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Atelier Restauration","intrusion_externe":"Atelier Restauration","intrusion_interne":"Confinement sur place","attentat":"Atelier Restauration","accident":"Atelier Restauration","tempete":"Atelier Restauration","inondation":"Atelier Zartistes"},{"id":28,"lieu":"Infirmerie","batiment":"Bâtiment B","etage":"RDC","ppms_normal":"Infirmerie","intrusion_externe":"Infirmerie","intrusion_interne":"Confinement sur place","attentat":"Infirmerie","accident":"Infirmerie","tempete":"Infirmerie","inondation":"Atelier Zartistes"}]};
+// ─────────────────────────────────────────────────────────────────────────
+// MODÈLE DE DONNÉES
+// ─────────────────────────────────────────────────────────────────────────
+let config = {
+    zones:     [],   // [{id, nom, slug, batiment, icone, etage, telephone}]
+    personnel: [],   // [{id, nom, prenom, poste, lieu, contrat, date_entree, date_fin}]
+    enfants:   [],   // [{id, nom, prenom, groupe}]
+    lieux:     [],   // [{id, nom, type, batiment, etage, zone_ppms}]
+    regles:    [],   // [{id, lieu, batiment, etage, ppms_normal, intrusion_externe, ...}]
+};
+
+let exercise = {
+    personnel: [],   // [{uid, nom, prenom, zone_slug, lieu_origine, status, autre_zone_slug}]
+    enfants:   [],   // [{uid, nom, prenom, zone_slug, lieu_origine, status, autre_zone_slug}]
+    scenario: {
+        type: 'intrusion-externe',
+        description: SCENARIOS_DATA['intrusion-externe'].description,
+        objectifs: SCENARIOS_DATA['intrusion-externe'].objectifs
+    },
+    zonePhones: {}
+};
+
+// Config editing state
+let editZoneId   = null;
+let editPersId   = null;
+let editEnfId    = null;
+
+// Add person modal state
+let addPersonZone = '';
+let addPersonType = '';
+
+// Autre zone modal state
+let autrePerson   = null;
+let autrePersonType = '';
+
+// Timer
+let timerInterval = null;
+let timerSeconds  = 0;
+let timerRunning  = false;
+
+// Current tab
+let currentTab = 'A';
+
+// ─────────────────────────────────────────────────────────────────────────
+// PERSISTENCE — Backend API + localStorage cache
+// ─────────────────────────────────────────────────────────────────────────
+const API_BASE = (location.hostname === 'localhost' || location.protocol === 'file:')
+    ? 'http://localhost:3000' : '';
+
+let _saveConfigTimer = null;
+function saveConfig() {
+    localStorage.setItem(KEY_CONFIG, JSON.stringify(config));
+    clearTimeout(_saveConfigTimer);
+    _saveConfigTimer = setTimeout(() => {
+        fetch(API_BASE + '/api/config', {
+            method: 'PUT', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(config)
+        }).catch(e => console.warn('Sync config error:', e));
+    }, 300);
+}
+
+let _saveExerciseTimer = null;
+function saveExercise() {
+    localStorage.setItem(KEY_EXER, JSON.stringify(exercise));
+    localStorage.setItem(KEY_EXER + '_ts', new Date().toISOString());
+    clearTimeout(_saveExerciseTimer);
+    _saveExerciseTimer = setTimeout(() => {
+        fetch(API_BASE + '/api/exercise', {
+            method: 'PUT', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(exercise)
+        }).catch(e => console.warn('Sync exercise error:', e));
+    }, 300);
+}
+
+async function loadAll() {
+    // 1. Charger depuis le backend si disponible
+    let loadedFromServer = false;
+    try {
+        const [cfgRes, exRes] = await Promise.all([
+            fetch(API_BASE + '/api/config').then(r => r.json()).catch(() => null),
+            fetch(API_BASE + '/api/exercise').then(r => r.json()).catch(() => null)
+        ]);
+        if (cfgRes && cfgRes.zones && cfgRes.zones.length > 0) {
+            config = cfgRes;
+            localStorage.setItem(KEY_CONFIG, JSON.stringify(config));
+            loadedFromServer = true;
+        }
+        if (exRes && (exRes.personnel || exRes.enfants)) {
+            exercise.personnel  = exRes.personnel  || [];
+            exercise.enfants    = exRes.enfants    || [];
+            exercise.scenario   = exRes.scenario   || exercise.scenario;
+            exercise.zonePhones = exRes.zonePhones || {};
+            localStorage.setItem(KEY_EXER, JSON.stringify(exercise));
+        }
+    } catch(e) { console.warn('Backend non dispo, fallback localStorage:', e); }
+
+    // 2. Fallback localStorage
+    if (!loadedFromServer) {
+        try {
+            const c = localStorage.getItem(KEY_CONFIG);
+            if (c) config = JSON.parse(c);
+        } catch(e) {}
+    }
+
+    // 3. Données par défaut si vide
+    if (!config.zones || config.zones.length === 0) {
+        config.zones     = DEFAULT_CONFIG.zones;
+        config.personnel = DEFAULT_CONFIG.personnel;
+        config.enfants   = DEFAULT_CONFIG.enfants;
+        config.lieux     = DEFAULT_CONFIG.lieux;
+        config.regles    = DEFAULT_CONFIG.regles;
+        saveConfig();
+    }
+    if (!config.regles || config.regles.length === 0) {
+        config.regles = DEFAULT_CONFIG.regles; saveConfig();
+    }
+    if (!config.lieux || config.lieux.length === 0) {
+        config.lieux = DEFAULT_CONFIG.lieux; saveConfig();
+    }
+
+    // 4. Fallback exercice localStorage
+    if (!loadedFromServer) {
+        try {
+            const e = localStorage.getItem(KEY_EXER);
+            if (e) {
+                const parsed = JSON.parse(e);
+                exercise.personnel  = parsed.personnel  || [];
+                exercise.enfants    = parsed.enfants    || [];
+                exercise.scenario   = parsed.scenario   || exercise.scenario;
+                exercise.zonePhones = parsed.zonePhones || {};
+            }
+        } catch(e) {}
+    }
+}
+
+// ── WebSocket temps réel ─────────────────────────────────────────────────
+function initWebSocket() {
+    const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = API_BASE ? API_BASE.replace(/^http/, 'ws') : (wsProto + '//' + location.host);
+    try {
+        const ws = new WebSocket(wsUrl);
+        ws.onmessage = (evt) => {
+            const msg = JSON.parse(evt.data);
+            if (msg.type === 'config_updated') {
+                fetch(API_BASE + '/api/config').then(r => r.json()).then(data => {
+                    if (data && data.zones) { config = data; renderAllZones(); }
+                }).catch(() => {});
+            } else if (msg.type === 'exercise_updated' || msg.type === 'person_updated') {
+                fetch(API_BASE + '/api/exercise').then(r => r.json()).then(data => {
+                    if (data && (data.personnel || data.enfants)) {
+                        exercise.personnel  = data.personnel  || [];
+                        exercise.enfants    = data.enfants    || [];
+                        exercise.scenario   = data.scenario   || exercise.scenario;
+                        exercise.zonePhones = data.zonePhones || {};
+                        renderAllZones();
+                    }
+                }).catch(() => {});
+            }
+        };
+        ws.onclose = () => setTimeout(initWebSocket, 3000);
+        ws.onerror = () => ws.close();
+    } catch(e) { setTimeout(initWebSocket, 5000); }
+}
+
+function makeId() {
+    return Date.now() + Math.random().toString(36).slice(2);
+}
+
+function makeSlug(nom) {
+    return nom.trim().toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/'/g, '-')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9-]/g, '');
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// TIMER
+// ─────────────────────────────────────────────────────────────────────────
+function toggleTimer() {
+    if (timerRunning) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        document.getElementById('timerDisplay').classList.remove('running');
+    } else {
+        timerInterval = setInterval(() => {
+            timerSeconds++;
+            const h = String(Math.floor(timerSeconds / 3600)).padStart(2,'0');
+            const m = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2,'0');
+            const s = String(timerSeconds % 60).padStart(2,'0');
+            document.getElementById('timerDisplay').textContent = `${h}:${m}:${s}`;
+        }, 1000);
+        timerRunning = true;
+        document.getElementById('timerDisplay').classList.add('running');
+    }
+}
+
+function resetTimer() {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerSeconds = 0;
+    document.getElementById('timerDisplay').textContent = '00:00:00';
+    document.getElementById('timerDisplay').classList.remove('running');
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────────────────────────────────
+function switchTab(t) {
+    currentTab = t;
+    document.getElementById('tabA').classList.toggle('active', t === 'A');
+    document.getElementById('tabB').classList.toggle('active', t === 'B');
+    const btnA = document.getElementById('tabBtnA');
+    const btnB = document.getElementById('tabBtnB');
+    btnA.className = 'tab-btn' + (t === 'A' ? ' active-a' : '');
+    btnB.className = 'tab-btn' + (t === 'B' ? ' active-b' : '');
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCENARIO BANNER
+// ─────────────────────────────────────────────────────────────────────────
+function updateScenarioBanner() {
+    const banner = document.getElementById('scenarioBanner');
+    const type = exercise.scenario.type;
+    banner.className = '';
+    banner.style.display = 'none';
+
+    if (type === 'intrusion-interne') {
+        banner.textContent = '🔒  INTRUSION INTERNE — Confinement sur place immédiat : personne ne rejoint sa zone habituelle — recensement par lieu d\'origine';
+        banner.classList.add('intrusion-interne');
+        banner.style.display = 'block';
+    } else if (type === 'inondation') {
+        const safezones = config.zones.filter(z => z.etage === '1er étage' && z.batiment !== 'Spéciale');
+        const txt = safezones.length > 0 ? safezones.map(z => z.nom).join(' & ') : 'zones au 1er étage';
+        banner.textContent = `🌊  INONDATION — Évacuation vers le 1er étage : ${txt}`;
+        banner.classList.add('inondation');
+        banner.style.display = 'block';
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// RENDER ZONES
+// ─────────────────────────────────────────────────────────────────────────
+function renderAllZones() {
+    updateScenarioBanner();
+    const filter = document.getElementById('searchInput').value.trim().toLowerCase();
+
+    const zonesA = document.getElementById('zonesA');
+    const zonesB = document.getElementById('zonesB');
+    zonesA.innerHTML = '';
+    zonesB.innerHTML = '';
+
+    const mainZones = config.zones.filter(z => z.slug !== 'sortie-exterieure');
+
+    mainZones.forEach(zone => {
+        const el = buildZoneElement(zone, filter);
+        if (zone.batiment === 'Bâtiment A') {
+            zonesA.appendChild(el);
+        } else if (zone.batiment === 'Bâtiment B') {
+            zonesB.appendChild(el);
+        } else {
+            zonesB.appendChild(el);
+        }
+    });
+
+    if (zonesA.children.length === 0) {
+        zonesA.innerHTML = '<p class="empty-msg" style="padding:20px;">Aucune zone pour Bâtiment A.<br>Ajoutez des zones dans Config.</p>';
+    }
+    if (zonesB.children.length === 0) {
+        zonesB.innerHTML = '<p class="empty-msg" style="padding:20px;">Aucune zone pour Bâtiment B.<br>Ajoutez des zones dans Config.</p>';
+    }
+}
+
+function buildZoneElement(zone, filter) {
+    const isBatB = zone.batiment === 'Bâtiment B';
+    const zonePhone = exercise.zonePhones[zone.slug] || '';
+
+    // Filtrer les personnes de cette zone
+    let persZone   = exercise.personnel.filter(p => p.zone_slug === zone.slug);
+    let enfZone    = exercise.enfants.filter(p => p.zone_slug === zone.slug);
+    // Personnes déplacées VERS cette zone
+    let persDeplZ  = exercise.personnel.filter(p => p.status === 'autre-zone' && p.autre_zone_slug === zone.slug && p.zone_slug !== zone.slug);
+    let enfDeplZ   = exercise.enfants.filter(p => p.status === 'autre-zone' && p.autre_zone_slug === zone.slug && p.zone_slug !== zone.slug);
+
+    if (filter) {
+        const f = (p) => p.nom.toLowerCase().includes(filter) || p.prenom.toLowerCase().includes(filter) || (p.lieu_origine||'').toLowerCase().includes(filter);
+        persZone   = persZone.filter(f);
+        enfZone    = enfZone.filter(f);
+        persDeplZ  = persDeplZ.filter(f);
+        enfDeplZ   = enfDeplZ.filter(f);
+    }
+
+    // Compter présents
+    const persPresents = persZone.filter(p => p.status === 'present').length + persDeplZ.length;
+    const enfPresents  = enfZone.filter(p => p.status === 'present').length + enfDeplZ.length;
+    const total = persPresents + enfPresents;
+
+    const div = document.createElement('div');
+    div.className = 'zone' + (isBatB ? ' bat-b' : '');
+    div.dataset.zone = zone.slug;
+
+    const batBadgeClass = isBatB ? 'badge-bat-b' : 'badge-bat-a';
+    const nameClass     = isBatB ? 'zone-name bat-b' : 'zone-name';
+
+    div.innerHTML = `
+        <div class="zone-header">
+            <span class="${nameClass}">${zone.icone || ''} ${zone.nom}<span class="badge-bat ${batBadgeClass}">${zone.batiment}</span></span>
+            <span class="zone-count" id="cnt_${zone.slug}">${total} personne(s)</span>
+            <div class="zone-tel">
+                <span class="zone-tel-label">Tel:</span>
+                <input type="text" class="zone-tel-input" placeholder="ex: 222 ou 06 12 34 56 78"
+                       value="${zonePhone}"
+                       onchange="saveZonePhone('${zone.slug}', this.value)">
+            </div>
+        </div>
+        <div class="zone-content">
+            <div class="zone-column">
+                <div class="zone-column-header col-pers">
+                    <span>👔 Personnel</span>
+                    <span class="col-count" id="cntP_${zone.slug}">${persPresents}</span>
+                    <button class="btn-add-col" onclick="openAddPerson('${zone.slug}','personnel')">➕</button>
+                </div>
+                <div id="colP_${zone.slug}"></div>
+            </div>
+            <div class="zone-column">
+                <div class="zone-column-header col-enf">
+                    <span>👶 Enfants</span>
+                    <span class="col-count" id="cntE_${zone.slug}">${enfPresents}</span>
+                    <button class="btn-add-col" onclick="openAddPerson('${zone.slug}','enfants')">➕</button>
+                </div>
+                <div id="colE_${zone.slug}"></div>
+            </div>
+        </div>`;
+
+    // Remplir personnel
+    const colP = div.querySelector(`#colP_${zone.slug}`);
+    [...persZone, ...persDeplZ].forEach(p => {
+        colP.appendChild(buildPersonCard(p, 'personnel', persDeplZ.includes(p)));
+    });
+    if (colP.children.length === 0) colP.innerHTML = '<p class="empty-msg">—</p>';
+
+    // Remplir enfants
+    const colE = div.querySelector(`#colE_${zone.slug}`);
+    [...enfZone, ...enfDeplZ].forEach(p => {
+        colE.appendChild(buildPersonCard(p, 'enfants', enfDeplZ.includes(p)));
+    });
+    if (colE.children.length === 0) colE.innerHTML = '<p class="empty-msg">—</p>';
+
+    return div;
+}
+
+function buildPersonCard(person, type, isDisplaced) {
+    const stMap = {
+        'present':          'st-present',
+        'absent':           'st-absent',
+        'autre-zone':       isDisplaced ? 'st-displaced' : 'st-autre',
+        'sortie-exterieure':'st-sortie',
+    };
+    const stClass = stMap[person.status] || '';
+
+    let displayName = `${person.nom} ${person.prenom}`;
+    if (person.status === 'autre-zone' && person.autre_zone_slug) {
+        const az = config.zones.find(z => z.slug === person.autre_zone_slug);
+        displayName += ` → ${az ? az.nom : person.autre_zone_slug}`;
+    } else if (person.status === 'sortie-exterieure') {
+        displayName += ' → 🚌 Sortie';
+    } else if (person.status === 'absent') {
+        displayName += ' (Absent)';
+    } else if (person.status === 'pending') {
+        displayName += ' (À vérifier)';
+    }
+
+    const origin = person.lieu_origine || '';
+
+    const card = document.createElement('div');
+    card.className = `person-card ${stClass}`;
+    card.innerHTML = `
+        <div class="person-info">
+            <div class="person-name">${displayName}</div>
+            ${origin ? `<div class="person-origin">Lieu d'origine : ${origin}</div>` : ''}
+        </div>
+        <div class="person-actions">
+            <button class="btn-st btn-st-present ${person.status==='present'?'active':''}" title="✅ Présent dans sa zone" onclick="setStatus('${person.uid}','${type}','present')">✓</button>
+            <button class="btn-st btn-st-absent ${person.status==='absent'?'active':''}" title="❌ Absent / Non localisé" onclick="setStatus('${person.uid}','${type}','absent')">✕</button>
+            <button class="btn-st btn-st-autre ${person.status==='autre-zone'&&!isDisplaced?'active':''}" title="↔ Autre zone" onclick="openAutreZone('${person.uid}','${type}')">↔</button>
+            <button class="btn-st btn-st-sortie ${person.status==='sortie-exterieure'?'active':''}" title="🚌 Sortie extérieure" onclick="setStatus('${person.uid}','${type}','sortie-exterieure')">🚌</button>
+            <button class="btn-st btn-st-pending ${person.status==='pending'?'active':''}" title="⏳ À vérifier" onclick="setStatus('${person.uid}','${type}','pending')">?</button>
+            <button class="btn-st btn-st-delete" title="Supprimer" onclick="deletePerson('${person.uid}','${type}')">🗑</button>
+        </div>`;
+    return card;
+}
+
+function saveZonePhone(slug, phone) {
+    exercise.zonePhones[slug] = phone;
+    saveExercise();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// STATUS ACTIONS
+// ─────────────────────────────────────────────────────────────────────────
+function findPerson(uid, type) {
+    const arr = type === 'personnel' ? exercise.personnel : exercise.enfants;
+    return arr.find(p => p.uid === uid);
+}
+
+function setStatus(uid, type, status) {
+    const p = findPerson(uid, type);
+    if (!p) return;
+    p.status = status;
+    if (status !== 'autre-zone') p.autre_zone_slug = null;
+    saveExercise();
+    renderAllZones();
+}
+
+function deletePerson(uid, type) {
+    const p = findPerson(uid, type);
+    if (!p) return;
+    if (!confirm(`Supprimer ${p.nom} ${p.prenom} ?`)) return;
+    if (type === 'personnel') {
+        exercise.personnel = exercise.personnel.filter(x => x.uid !== uid);
+    } else {
+        exercise.enfants = exercise.enfants.filter(x => x.uid !== uid);
+    }
+    saveExercise();
+    renderAllZones();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// ADD PERSON
+// ─────────────────────────────────────────────────────────────────────────
+function openAddPerson(zoneSlug, type) {
+    addPersonZone = zoneSlug;
+    addPersonType = type;
+    document.getElementById('apNom').value = '';
+    document.getElementById('apPrenom').value = '';
+    document.getElementById('modalAddPerson').style.display = 'flex';
+    document.getElementById('apNom').focus();
+}
+
+function closeAddPerson() {
+    document.getElementById('modalAddPerson').style.display = 'none';
+}
+
+function confirmAddPerson() {
+    const nom    = document.getElementById('apNom').value.trim();
+    const prenom = document.getElementById('apPrenom').value.trim();
+    if (!nom || !prenom) { alert('Veuillez remplir le nom et le prénom.'); return; }
+    const zone = config.zones.find(z => z.slug === addPersonZone);
+    const p = {
+        uid: makeId(),
+        nom, prenom,
+        zone_slug: addPersonZone,
+        lieu_origine: zone ? zone.nom : addPersonZone,
+        status: 'pending',
+        autre_zone_slug: null
+    };
+    if (addPersonType === 'personnel') exercise.personnel.push(p);
+    else exercise.enfants.push(p);
+    saveExercise();
+    renderAllZones();
+    closeAddPerson();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// AUTRE ZONE
+// ─────────────────────────────────────────────────────────────────────────
+function openAutreZone(uid, type) {
+    autrePerson = findPerson(uid, type);
+    autrePersonType = type;
+    if (!autrePerson) return;
+
+    const list = document.getElementById('autreZoneList');
+    list.innerHTML = `<p style="margin-bottom:12px;font-size:15px;">Déplacer <strong style="color:#1976d2;">${autrePerson.nom} ${autrePerson.prenom}</strong> vers :</p>`;
+
+    const otherZones = config.zones.filter(z => z.slug !== autrePerson.zone_slug && z.slug !== 'sortie-exterieure');
+    otherZones.forEach(zone => {
+        const isBatB = zone.batiment === 'Bâtiment B';
+        const opt = document.createElement('div');
+        opt.className = 'zone-option' + (isBatB ? ' bat-b' : '');
+        opt.innerHTML = `${zone.icone || ''} ${zone.nom} <small style="color:#999;font-weight:normal;">— ${zone.batiment}</small>`;
+        opt.onclick = () => {
+            autrePerson.status = 'autre-zone';
+            autrePerson.autre_zone_slug = zone.slug;
+            saveExercise();
+            renderAllZones();
+            closeAutreZone();
+        };
+        list.appendChild(opt);
+    });
+
+    document.getElementById('modalAutreZone').style.display = 'flex';
+}
+
+function closeAutreZone() {
+    document.getElementById('modalAutreZone').style.display = 'none';
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SEARCH
+// ─────────────────────────────────────────────────────────────────────────
+function searchPersons(term) {
+    renderAllZones();
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CONFIG MODAL
+// ─────────────────────────────────────────────────────────────────────────
+let cfgCurrentTab = 'personnel';
+
+function openConfig() {
+    cfgCurrentTab = 'personnel';
+    switchCfgTab('personnel');
+    renderCfgPersonnel();
+    renderCfgEnfants();
+    renderCfgLieux();
+    renderCfgRegles();
+    refreshLieuDatalist();
+    document.getElementById('modalConfig').style.display = 'flex';
+}
+
+function closeConfig() {
+    document.getElementById('modalConfig').style.display = 'none';
+    renderAllZones();
+}
+
+function switchCfgTab(tab) {
+    cfgCurrentTab = tab;
+    document.querySelectorAll('.cfg-tab').forEach((el, i) => {
+        const names = ['zones', 'personnel', 'enfants', 'regles'];
+        el.classList.toggle('active', names[i] === tab);
+    });
+    document.querySelectorAll('.cfg-tab-content').forEach(el => el.classList.remove('active'));
+    const tabMap = {regles:'cfgRegles', lieux:'cfgLieux', personnel:'cfgPersonnel', enfants:'cfgEnfants', zones:'cfgZones'};
+    const id = tabMap[tab] || ('cfg' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    document.getElementById(id).classList.add('active');
+    if (tab === 'regles') renderCfgRegles();
+}
+
+// ─── Zones ────────────────────────────────────────────────────────────────
+function renderCfgZones() {
+    const tbody = document.getElementById('tblZonesBody');
+    tbody.innerHTML = '';
+    config.zones.forEach(z => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${z.icone || ''}</td>
+            <td>${z.nom}</td>
+            <td>${z.batiment}</td>
+            <td>${z.etage || 'RDC'}</td>
+            <td>
+                <button class="btn-sm btn-edit" onclick="editZone('${z.id}')">✏️</button>
+                <button class="btn-sm btn-del" onclick="deleteZone('${z.id}')">🗑</button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function saveZone() {
+    const nom    = document.getElementById('zNom').value.trim();
+    const bat    = document.getElementById('zBat').value;
+    const etage  = document.getElementById('zEtage').value;
+    const icone  = document.getElementById('zNom_icone').value.trim();
+    if (!nom) { alert('Le nom de la zone est obligatoire.'); return; }
+
+    if (editZoneId !== null) {
+        const z = config.zones.find(x => String(x.id) === String(editZoneId));
+        if (z) { z.nom = nom; z.batiment = bat; z.etage = etage; z.icone = icone; z.slug = makeSlug(nom); }
+        cancelZoneEdit();
+    } else {
+        config.zones.push({ id: makeId(), nom, slug: makeSlug(nom), batiment: bat, icone, etage, telephone: '' });
+    }
+    saveConfig();
+    renderCfgZones();
+    refreshZoneSelects();
+}
+
+function editZone(id) {
+    const z = config.zones.find(x => String(x.id) === String(id));
+    if (!z) return;
+    editZoneId = id;
+    document.getElementById('zNom').value       = z.nom;
+    document.getElementById('zBat').value       = z.batiment;
+    document.getElementById('zEtage').value     = z.etage || '';
+    document.getElementById('zNom_icone').value = z.icone || '';
+    document.getElementById('btnAddZone').textContent = '💾 Modifier';
+    document.getElementById('btnCancelZone').style.display = 'inline-block';
+    document.getElementById('zNom').focus();
+}
+
+function cancelZoneEdit() {
+    editZoneId = null;
+    document.getElementById('zNom').value       = '';
+    document.getElementById('zBat').value       = 'Bâtiment A';
+    document.getElementById('zEtage').value     = '';
+    document.getElementById('zNom_icone').value = '';
+    document.getElementById('btnAddZone').textContent = '➕ Ajouter';
+    document.getElementById('btnCancelZone').style.display = 'none';
+}
+
+function deleteZone(id) {
+    const z = config.zones.find(x => String(x.id) === String(id));
+    if (!z) return;
+    if (!confirm(`Supprimer la zone "${z.nom}" ?`)) return;
+    config.zones = config.zones.filter(x => String(x.id) !== String(id));
+    saveConfig();
+    renderCfgZones();
+    refreshZoneSelects();
+}
+
+// ─── Personnel Config ──────────────────────────────────────────────────────
+function renderCfgPersonnel() {
+    const tbody = document.getElementById('tblPersonnelBody');
+    tbody.innerHTML = '';
+    if (config.personnel.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-msg">Aucun personnel configuré</td></tr>';
+        return;
+    }
+    config.personnel.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${p.nom}</td>
+            <td>${p.prenom}</td>
+            <td>${p.poste || ''}</td>
+            <td>${p.lieu || ''}</td>
+            <td>${p.contrat || ''}</td>
+            <td>${p.date_entree || ''}</td>
+            <td>${p.date_fin || ''}</td>
+            <td>
+                <button class="btn-sm btn-edit" onclick="editPersonnel('${p.id}')">✏️</button>
+                <button class="btn-sm btn-del" onclick="deletePersonnel('${p.id}')">🗑</button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function savePersonnel() {
+    const nom     = document.getElementById('pNom').value.trim();
+    const prenom  = document.getElementById('pPrenom').value.trim();
+    const poste   = document.getElementById('pPoste').value.trim();
+    const lieu    = document.getElementById('pLieu').value.trim();
+    const contrat = document.getElementById('pContrat').value;
+    const date_entree = document.getElementById('pDateEntree').value.trim();
+    const date_fin = document.getElementById('pDateFin').value.trim();
+    if (!nom || !prenom) { alert('Nom et prénom obligatoires.'); return; }
+
+    if (editPersId !== null) {
+        const p = config.personnel.find(x => String(x.id) === String(editPersId));
+        if (p) { p.nom = nom; p.prenom = prenom; p.poste = poste; p.lieu = lieu; p.contrat = contrat; p.date_entree = date_entree; p.date_fin = date_fin; }
+        cancelPersonnelEdit();
+    } else {
+        config.personnel.push({ id: makeId(), nom, prenom, poste, lieu, contrat, date_entree, date_fin });
+    }
+    saveConfig();
+    renderCfgPersonnel();
+}
+
+function editPersonnel(id) {
+    const p = config.personnel.find(x => String(x.id) === String(id));
+    if (!p) return;
+    editPersId = id;
+    document.getElementById('pNom').value     = p.nom;
+    document.getElementById('pPrenom').value  = p.prenom;
+    document.getElementById('pPoste').value   = p.poste || '';
+    document.getElementById('pLieu').value    = p.lieu || '';
+    document.getElementById('pContrat').value = p.contrat || 'CDI';
+    document.getElementById('pDateEntree').value = p.date_entree || '';
+    document.getElementById('pDateFin').value = p.date_fin || '';
+    document.getElementById('btnAddPersonnel').textContent = '💾 Modifier';
+    document.getElementById('btnCancelPersonnel').style.display = 'inline-block';
+}
+
+function cancelPersonnelEdit() {
+    editPersId = null;
+    document.getElementById('pNom').value     = '';
+    document.getElementById('pPrenom').value  = '';
+    document.getElementById('pPoste').value   = '';
+    document.getElementById('pLieu').value    = '';
+    document.getElementById('pContrat').value = 'CDI';
+    document.getElementById('pDateEntree').value = '';
+    document.getElementById('pDateFin').value = '';
+    document.getElementById('btnAddPersonnel').textContent = '➕ Ajouter';
+    document.getElementById('btnCancelPersonnel').style.display = 'none';
+}
+
+function deletePersonnel(id) {
+    const p = config.personnel.find(x => String(x.id) === String(id));
+    if (!p) return;
+    if (!confirm(`Supprimer ${p.nom} ${p.prenom} du référentiel ?`)) return;
+    config.personnel = config.personnel.filter(x => String(x.id) !== String(id));
+    saveConfig();
+    renderCfgPersonnel();
+}
+
+// ─── Enfants Config ────────────────────────────────────────────────────────
+function renderCfgEnfants() {
+    const tbody = document.getElementById('tblEnfantsBody');
+    tbody.innerHTML = '';
+    if (config.enfants.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">Aucun enfant configuré</td></tr>';
+        return;
+    }
+    config.enfants.forEach(e => {
+        const z = config.zones.find(z => z.slug === e.zone_slug);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${e.nom}</td>
+            <td>${e.prenom}</td>
+            <td>${e.groupe || ''}</td>
+            <td>${z ? z.nom : (e.zone_slug || '—')}</td>
+            <td>
+                <button class="btn-sm btn-edit" onclick="editEnfant('${e.id}')">✏️</button>
+                <button class="btn-sm btn-del" onclick="deleteEnfant('${e.id}')">🗑</button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+
+function saveEnfant() {
+    const nom    = document.getElementById('eNom').value.trim();
+    const prenom = document.getElementById('ePrenom').value.trim();
+    const groupe = document.getElementById('eGroupe').value.trim();
+    const zone   = document.getElementById('eZone').value;
+    if (!nom || !prenom) { alert('Nom et prénom obligatoires.'); return; }
+
+    if (editEnfId !== null) {
+        const e = config.enfants.find(x => String(x.id) === String(editEnfId));
+        if (e) { e.nom = nom; e.prenom = prenom; e.groupe = groupe; e.zone_slug = zone; }
+        cancelEnfantEdit();
+    } else {
+        config.enfants.push({ id: makeId(), nom, prenom, groupe, zone_slug: zone });
+    }
+    saveConfig();
+    renderCfgEnfants();
+}
+
+function editEnfant(id) {
+    const e = config.enfants.find(x => String(x.id) === String(id));
+    if (!e) return;
+    editEnfId = id;
+    document.getElementById('eNom').value    = e.nom;
+    document.getElementById('ePrenom').value = e.prenom;
+    document.getElementById('eGroupe').value = e.groupe || '';
+    document.getElementById('eZone').value   = e.zone_slug || '';
+    document.getElementById('btnAddEnfants').textContent = '💾 Modifier';
+    document.getElementById('btnCancelEnfants').style.display = 'inline-block';
+}
+
+function cancelEnfantEdit() {
+    editEnfId = null;
+    document.getElementById('eNom').value = '';
+    document.getElementById('ePrenom').value = '';
+    document.getElementById('eGroupe').value = '';
+    document.getElementById('btnAddEnfants').textContent = '➕ Ajouter';
+    document.getElementById('btnCancelEnfants').style.display = 'none';
+}
+
+function deleteEnfant(id) {
+    const e = config.enfants.find(x => String(x.id) === String(id));
+    if (!e) return;
+    if (!confirm(`Supprimer ${e.nom} ${e.prenom} du référentiel ?`)) return;
+    config.enfants = config.enfants.filter(x => String(x.id) !== String(id));
+    saveConfig();
+    renderCfgEnfants();
+}
+
+function clearAll(type) {
+    if (!confirm(`Supprimer TOUT le ${type} du référentiel ?`)) return;
+    if (type === 'personnel') { config.personnel = []; saveConfig(); renderCfgPersonnel(); }
+    else if (type === 'lieux') { config.lieux = []; saveConfig(); renderCfgLieux(); }
+    else { config.enfants = []; saveConfig(); renderCfgEnfants(); }
+}
+
+function refreshZoneSelects() {
+    // Zone selects only used for enfants now
+    const opts = config.zones.filter(z => z.slug !== 'sortie-exterieure')
+        .map(z => `<option value="${z.slug}">${z.icone || ''} ${z.nom} (${z.batiment})</option>`)
+        .join('');
+    const eZone = document.getElementById('eZone');
+    if (eZone) eZone.innerHTML = '<option value="">— Aucune zone PPMS directe —</option>' + opts;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// CHARGER DEPUIS CONFIG
+// ─────────────────────────────────────────────────────────────────────────
+function loadFromConfig() {
+    if (config.personnel.length === 0 && config.enfants.length === 0) {
+        alert('⚠️ Le référentiel Config est vide.\nAjoutez du personnel et des enfants dans Config d\'abord.');
+        return;
+    }
+
+    const scenarioType = exercise.scenario.type;
+    let added = 0, updated = 0;
+
+    // Charger personnel — résolution zone via Règles PPMS
+    config.personnel.forEach(cp => {
+        const zoneSlug = (scenarioType === 'intrusion-interne') ? null
+                       : resolveZoneFromRules(cp.lieu || '', scenarioType);
+        const existing = exercise.personnel.find(p => p.nom === cp.nom && p.prenom === cp.prenom);
+        if (existing) {
+            existing.zone_slug   = zoneSlug;
+            existing.lieu_origine = cp.lieu || '';
+            updated++;
+        } else {
+            exercise.personnel.push({
+                uid: makeId(), nom: cp.nom, prenom: cp.prenom,
+                zone_slug: zoneSlug, lieu_origine: cp.lieu || '',
+                status: 'pending', autre_zone_slug: null
+            });
+            added++;
+        }
+    });
+
+    // Charger enfants — résolution zone via Règles PPMS (groupe = lieu d'origine)
+    config.enfants.forEach(ce => {
+        const zoneSlug = (scenarioType === 'intrusion-interne') ? null
+                       : resolveZoneFromRules(ce.groupe || '', scenarioType);
+        const existing = exercise.enfants.find(p => p.nom === ce.nom && p.prenom === ce.prenom);
+        if (existing) {
+            existing.zone_slug    = zoneSlug;
+            existing.lieu_origine = ce.groupe || '';
+            updated++;
+        } else {
+            exercise.enfants.push({
+                uid: makeId(), nom: ce.nom, prenom: ce.prenom,
+                zone_slug: zoneSlug, lieu_origine: ce.groupe || '',
+                status: 'pending', autre_zone_slug: null
+            });
+            added++;
+        }
+    });
+
+    saveExercise();
+    renderAllZones();
+
+    const total = config.personnel.length + config.enfants.length;
+    alert(`✅ Chargement terminé depuis Config.\n👥 ${added} ajouté(s)\n🔄 ${updated} mis à jour\n📋 Total : ${total} personnes`);
+
+    document.getElementById('statusPersonnel').textContent = `✓ ${exercise.personnel.length} pers.`;
+    document.getElementById('statusEnfants').textContent   = `✓ ${exercise.enfants.length} enf.`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// IMPORT EXCEL (urgence)
+// ─────────────────────────────────────────────────────────────────────────
+// Résoudre la zone PPMS depuis les Règles PPMS selon le scénario
+function resolveZoneFromRules(lieu, scenarioType) {
+    if (!lieu) return '';
+    const SCENARIO_COL = {
+        'intrusion-externe': 'intrusion_externe',
+        'intrusion-interne': null,
+        'attentat': 'attentat',
+        'incendie': 'intrusion_externe',
+        'accident': 'accident',
+        'tempete': 'tempete',
+        'inondation': 'inondation',
+        'seisme': 'ppms_normal',
+    };
+    if (scenarioType === 'intrusion-interne') return null;
+    const col = SCENARIO_COL[scenarioType] || 'intrusion_externe';
+    // Chercher dans les règles PPMS
+    const rule = (config.regles || []).find(r => r.lieu.toLowerCase() === lieu.toLowerCase());
+    if (rule) {
+        const dest = rule[col] || rule.ppms_normal || '';
+        if (dest && dest.toLowerCase() !== 'confinement sur place') {
+            return makeSlug(dest);
+        }
+    }
+    // Fallback : MAPPING_LIEUX
+    const mapped = MAPPING_LIEUX[lieu.toLowerCase()];
+    if (mapped) return mapped;
+    // Fallback : slug direct
+    return makeSlug(lieu);
+}
+
+// ── Lieux CRUD ──────────────────────────────────────────────────────
+function renderCfgLieux() {
+    const tbody = document.getElementById('tblLieuxBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    const lieux = config.lieux || [];
+    if (lieux.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-msg">Aucun lieu configuré</td></tr>';
+        return;
+    }
+    lieux.forEach((l, i) => {
+        const zpStyle = l.zone_ppms === 'Oui' ? 'color:#4caf50;font-weight:bold;' : 'color:#999;';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${l.nom}</td><td>${l.type||''}</td><td>${l.batiment||''}</td>
+            <td>${l.etage||''}</td><td style="${zpStyle}">${l.zone_ppms||'Non'}</td>
+            <td>
+                <button class="btn-sm btn-edit" onclick="editLieu(${i})">✏️</button>
+                <button class="btn-sm btn-del" onclick="deleteLieu(${i})">🗑</button>
+            </td>`;
+        tbody.appendChild(tr);
+    });
+}
+function saveLieu() {
+    const nom = document.getElementById('lNom').value.trim();
+    if (!nom) { alert('Nom du lieu requis'); return; }
+    const item = {
+        id: Date.now(), nom,
+        type: document.getElementById('lType').value,
+        batiment: document.getElementById('lBat').value,
+        etage: document.getElementById('lEtage').value,
+        zone_ppms: document.getElementById('lZonePpms').value
+    };
+    if (!config.lieux) config.lieux = [];
+    const editIdx = document.getElementById('btnAddLieu').dataset.editIdx;
+    if (editIdx !== undefined) {
+        item.id = config.lieux[editIdx].id;
+        config.lieux[editIdx] = item;
+        delete document.getElementById('btnAddLieu').dataset.editIdx;
+        document.getElementById('btnAddLieu').textContent = '➕ Ajouter';
+        document.getElementById('btnCancelLieu').style.display = 'none';
+    } else {
+        config.lieux.push(item);
+    }
+    saveConfig(); renderCfgLieux(); refreshLieuDatalist();
+    document.getElementById('lNom').value = '';
+    document.getElementById('lType').value = 'Unité de vie';
+    document.getElementById('lBat').value = 'Bâtiment A';
+    document.getElementById('lEtage').value = 'RDC';
+    document.getElementById('lZonePpms').value = 'Non';
+}
+function editLieu(idx) {
+    const l = config.lieux[idx];
+    document.getElementById('lNom').value = l.nom;
+    document.getElementById('lType').value = l.type || 'Unité de vie';
+    document.getElementById('lBat').value = l.batiment || 'Bâtiment A';
+    document.getElementById('lEtage').value = l.etage || 'RDC';
+    document.getElementById('lZonePpms').value = l.zone_ppms || 'Non';
+    document.getElementById('btnAddLieu').dataset.editIdx = idx;
+    document.getElementById('btnAddLieu').textContent = '💾 Modifier';
+    document.getElementById('btnCancelLieu').style.display = '';
+}
+function cancelLieuEdit() {
+    delete document.getElementById('btnAddLieu').dataset.editIdx;
+    document.getElementById('btnAddLieu').textContent = '➕ Ajouter';
+    document.getElementById('btnCancelLieu').style.display = 'none';
+    document.getElementById('lNom').value = '';
+    document.getElementById('lType').value = 'Unité de vie';
+    document.getElementById('lBat').value = 'Bâtiment A';
+    document.getElementById('lEtage').value = 'RDC';
+    document.getElementById('lZonePpms').value = 'Non';
+}
+function deleteLieu(idx) {
+    const l = config.lieux[idx];
+    if (!confirm(`Supprimer le lieu "${l.nom}" ?`)) return;
+    config.lieux.splice(idx, 1);
+    saveConfig(); renderCfgLieux(); refreshLieuDatalist();
+}
+
+function renderCfgRegles() {
+    const tbody = document.getElementById('tblReglesBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    const regles = config.regles || [];
+    if (regles.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-msg">Aucune règle configurée</td></tr>';
+        return;
+    }
+    regles.forEach(r => {
+        const tr = document.createElement('tr');
+        const cols = [r.lieu, r.batiment, r.etage,
+            r.ppms_normal, r.intrusion_externe, r.intrusion_interne,
+            r.attentat, r.accident, r.tempete, r.inondation];
+        tr.innerHTML = cols.map((c,i) => {
+            const isConf = (c||'').toLowerCase().includes('confinement');
+            const color = isConf ? 'color:#dc3545;font-style:italic;' : (i > 2 ? 'color:#1976d2;font-weight:bold;' : '');
+            return `<td style="${color}">${c||''}</td>`;
+        }).join('');
+        tbody.appendChild(tr);
+    });
+}
+
+function refreshLieuDatalist() {
+    const dl = document.getElementById('lieuList');
+    if (!dl) return;
+    const fromLieux = (config.lieux||[]).map(l => l.nom);
+    const fromRegles = (config.regles||[]).map(r => r.lieu);
+    const all = [...new Set([...fromLieux, ...fromRegles].filter(Boolean))].sort();
+    dl.innerHTML = all.map(l => `<option value="${l}">`).join('');
+}
+
+function resolveZoneSlug(rawZone) {
+    const z = rawZone.trim().toLowerCase();
+    // Mapping lieux réels
+    if (MAPPING_LIEUX[z]) return MAPPING_LIEUX[z];
+    // Slug direct
+    const slug = z.replace(/\s+/g, '-').replace(/'/g, '-');
+    const found = config.zones.find(zone => zone.slug === slug || zone.nom.toLowerCase() === z);
+    return found ? found.slug : slug;
+}
+
+function importExcel(event, type) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws);
+
+            let added = 0, skipped = 0;
+            rows.forEach(row => {
+                const nom    = (row.Nom || row.nom || '').toString().trim();
+                const prenom = (row.Prenom || row.Prénom || row.prenom || '').toString().trim();
+                const zoneBrute = (row.Zone || row.zone || row.Groupe || row.groupe || '').toString().trim();
+                if (!nom || !prenom) { skipped++; return; }
+
+                const zoneSlug = zoneBrute ? resolveZoneSlug(zoneBrute) : '';
+                const z = config.zones.find(z => z.slug === zoneSlug);
+                const lieu_origine = zoneBrute;
+
+                // Appliquer logique scénario
+                const scenarioType = exercise.scenario.type;
+                let finalSlug = (scenarioType === 'intrusion-interne') ? null : zoneSlug;
+
+                const arr = type === 'personnel' ? exercise.personnel : exercise.enfants;
+                const exists = arr.find(p => p.nom === nom && p.prenom === prenom);
+                if (!exists) {
+                    arr.push({
+                        uid: makeId(), nom, prenom,
+                        zone_slug: finalSlug,
+                        lieu_origine,
+                        status: 'pending',
+                        autre_zone_slug: null
+                    });
+                    added++;
+                } else {
+                    exists.zone_slug = finalSlug;
+                    exists.lieu_origine = lieu_origine;
+                    skipped++;
+                }
+            });
+
+            saveExercise();
+            renderAllZones();
+
+            const statusEl = type === 'personnel'
+                ? document.getElementById('statusPersonnel')
+                : document.getElementById('statusEnfants');
+            const arr = type === 'personnel' ? exercise.personnel : exercise.enfants;
+            statusEl.textContent = `✓ ${arr.length} (URGENCE)`;
+            alert(`✅ Import terminé !\n✅ ${added} ajouté(s)\n⏭️ ${skipped} mis à jour / ignorés`);
+        } catch(err) {
+            alert('Erreur lecture Excel : ' + err.message);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// IMPORT EXCEL CONFIG (Personnel/Enfants dans le référentiel)
+// ─────────────────────────────────────────────────────────────────────────
+function importConfigExcel(event, type) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws);
+
+            let added = 0, skipped = 0;
+            rows.forEach(row => {
+                const nom    = (row.Nom || row.nom || '').toString().trim();
+                const prenom = (row.Prenom || row.Prénom || row.prenom || '').toString().trim();
+                if (!nom || !prenom) return;
+
+                if (type === 'personnel') {
+                    const poste   = (row.Poste || row.poste || '').toString().trim();
+                    const lieu    = (row.Lieu || row.lieu || row.Zone || row.zone || '').toString().trim();
+                    const contrat = (row.Contrat || row.contrat || row['Type contrat'] || 'CDI').toString().trim();
+                    const date_entree = (row['Date entrée'] || row.date_entree || '').toString().trim();
+                    const date_fin = (row['Date fin contrat'] || row.date_fin || '').toString().trim();
+                    const exists = config.personnel.find(p => p.nom === nom && p.prenom === prenom);
+                    if (!exists) {
+                        config.personnel.push({ id: makeId(), nom, prenom, poste, lieu, contrat, date_entree, date_fin });
+                        added++;
+                    } else { skipped++; }
+                } else if (type === 'lieux') {
+                    const nomLieu = (row.Lieu || row.Nom || row.nom || nom).toString().trim();
+                    const typeLieu = (row.Type || row.type || '').toString().trim();
+                    const batiment = (row.Bâtiment || row.batiment || '').toString().trim();
+                    const etage = (row.Étage || row.etage || '').toString().trim();
+                    const zonePpms = (row['Zone PPMS'] || row.zone_ppms || 'Non').toString().trim();
+                    const exists = (config.lieux||[]).find(l => l.nom === nomLieu);
+                    if (!exists) {
+                        if (!config.lieux) config.lieux = [];
+                        config.lieux.push({ id: makeId(), nom: nomLieu, type: typeLieu, batiment, etage, zone_ppms: zonePpms });
+                        added++;
+                    } else { skipped++; }
+                } else {
+                    const groupe    = (row.Groupe || row.groupe || '').toString().trim();
+                    const zoneBrute = (row.Zone || row.zone || row['Zone PPMS'] || '').toString().trim();
+                    const zoneSlug  = zoneBrute ? resolveZoneSlug(zoneBrute) : '';
+                    const exists = config.enfants.find(p => p.nom === nom && p.prenom === prenom);
+                    if (!exists) {
+                        config.enfants.push({ id: makeId(), nom, prenom, groupe, zone_slug: zoneSlug });
+                        added++;
+                    } else { skipped++; }
+                }
+            });
+
+            saveConfig();
+            if (type === 'personnel') renderCfgPersonnel();
+            else if (type === 'lieux') renderCfgLieux();
+            else renderCfgEnfants();
+            refreshZoneSelects();
+            refreshLieuDatalist();
+            alert(`✅ ${added} importé(s) dans Config, ${skipped} déjà présent(s).`);
+        } catch(err) {
+            alert('Erreur lecture Excel : ' + err.message);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// EXPORT EXCEL CONFIG
+// ─────────────────────────────────────────────────────────────────────────
+function exportConfigExcel(type) {
+    const wb = XLSX.utils.book_new();
+    let rows;
+    if (type === 'personnel') {
+        rows = [['Nom','Prénom','Poste','Lieu','Contrat','Date entrée','Date fin contrat']];
+        config.personnel.forEach(p => {
+            rows.push([p.nom, p.prenom, p.poste||'', p.lieu||'', p.contrat||'', p.date_entree||'', p.date_fin||'']);
+        });
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Personnel');
+        XLSX.writeFile(wb, 'Config_Personnel.xlsx');
+    } else if (type === 'lieux') {
+        rows = [['Lieu','Type','Bâtiment','Étage','Zone PPMS']];
+        (config.lieux||[]).forEach(l => {
+            rows.push([l.nom, l.type||'', l.batiment||'', l.etage||'', l.zone_ppms||'Non']);
+        });
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Lieux');
+        XLSX.writeFile(wb, 'Config_Lieux.xlsx');
+    } else {
+        rows = [['Nom','Prénom','Groupe']];
+        config.enfants.forEach(e => {
+            rows.push([e.nom, e.prenom, e.groupe||'']);
+        });
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Enfants');
+        XLSX.writeFile(wb, 'Config_Enfants.xlsx');
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// BOUTONS GLOBAUX CONFIG (Télécharger / Importer / Contrôle cohérence)
+// ─────────────────────────────────────────────────────────────────────────
+function downloadModeleExcel() {
+    const wb = XLSX.utils.book_new();
+    // Feuille Lieux
+    const lieuxRows = [['Lieu','Type','Bâtiment','Étage','Zone PPMS']];
+    (config.lieux||[]).forEach(l => lieuxRows.push([l.nom, l.type||'', l.batiment||'', l.etage||'', l.zone_ppms||'Non']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lieuxRows), 'Lieux');
+    // Feuille Personnel
+    const persRows = [['Nom','Prénom','Poste','Lieu','Type contrat','Date entrée','Date fin contrat']];
+    config.personnel.forEach(p => persRows.push([p.nom, p.prenom, p.poste||'', p.lieu||'', p.contrat||'', p.date_entree||'', p.date_fin||'']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(persRows), 'Personnel');
+    // Feuille Enfants
+    const enfRows = [['Nom','Prénom','Lieu']];
+    config.enfants.forEach(e => enfRows.push([e.nom, e.prenom, e.groupe||'']));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(enfRows), 'Enfants');
+    // Feuille Tableau confinement PPMS
+    const regRows = [['Lieu','Bâtiment','Étage','PPMS normal','Intrusion externe','Intrusion interne','Attentat','Accident','Tempête','Inondation']];
+    (config.regles||[]).forEach(r => regRows.push([r.lieu, r.batiment, r.etage, r.ppms_normal, r.intrusion_externe, r.intrusion_interne, r.attentat, r.accident, r.tempete, r.inondation]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(regRows), 'Tableau confinement PPMS');
+    XLSX.writeFile(wb, 'Modele_Referentiel_PPMS.xlsx');
+}
+
+function importGlobalExcel(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            let imported = { lieux: 0, personnel: 0, enfants: 0, regles: 0 };
+
+            // Feuille Lieux
+            const wsLieux = wb.Sheets['Lieux'];
+            if (wsLieux) {
+                const rows = XLSX.utils.sheet_to_json(wsLieux);
+                config.lieux = rows.map((r, i) => ({
+                    id: Date.now() + i, nom: (r.Lieu||r.Nom||'').toString().trim(),
+                    type: (r.Type||'').toString().trim(), batiment: (r.Bâtiment||r.Batiment||'').toString().trim(),
+                    etage: (r.Étage||r.Etage||'').toString().trim(), zone_ppms: (r['Zone PPMS']||'Non').toString().trim()
+                })).filter(l => l.nom);
+                imported.lieux = config.lieux.length;
+            }
+
+            // Feuille Personnel
+            const wsPers = wb.Sheets['Personnel'];
+            if (wsPers) {
+                const rows = XLSX.utils.sheet_to_json(wsPers);
+                config.personnel = rows.map((r, i) => ({
+                    id: Date.now() + 1000 + i, nom: (r.Nom||'').toString().trim(),
+                    prenom: (r.Prénom||r.Prenom||'').toString().trim(),
+                    poste: (r.Poste||'').toString().trim(), lieu: (r.Lieu||'').toString().trim(),
+                    contrat: (r['Type contrat']||r.Contrat||'CDI').toString().trim(),
+                    date_entree: (r['Date entrée']||r['Date entree']||'').toString().trim(),
+                    date_fin: (r['Date fin contrat']||r['Date fin']||'').toString().trim()
+                })).filter(p => p.nom && p.prenom);
+                imported.personnel = config.personnel.length;
+            }
+
+            // Feuille Enfants
+            const wsEnf = wb.Sheets['Enfants'];
+            if (wsEnf) {
+                const rows = XLSX.utils.sheet_to_json(wsEnf);
+                config.enfants = rows.map((r, i) => ({
+                    id: Date.now() + 2000 + i, nom: (r.Nom||'').toString().trim(),
+                    prenom: (r.Prénom||r.Prenom||'').toString().trim(),
+                    groupe: (r.Lieu||r.Groupe||'').toString().trim()
+                })).filter(e => e.nom && e.prenom);
+                imported.enfants = config.enfants.length;
+            }
+
+            // Feuille Tableau confinement PPMS
+            const wsReg = wb.Sheets['Tableau confinement PPMS'];
+            if (wsReg) {
+                const rows = XLSX.utils.sheet_to_json(wsReg);
+                config.regles = rows.map((r, i) => ({
+                    id: Date.now() + 3000 + i, lieu: (r.Lieu||'').toString().trim(),
+                    batiment: (r.Bâtiment||r.Batiment||'').toString().trim(),
+                    etage: (r.Étage||r.Etage||'').toString().trim(),
+                    ppms_normal: (r['PPMS normal']||'').toString().trim(),
+                    intrusion_externe: (r['Intrusion externe']||'').toString().trim(),
+                    intrusion_interne: (r['Intrusion interne']||'').toString().trim(),
+                    attentat: (r.Attentat||'').toString().trim(),
+                    accident: (r.Accident||'').toString().trim(),
+                    tempete: (r.Tempête||r.Tempete||'').toString().trim(),
+                    inondation: (r.Inondation||'').toString().trim()
+                })).filter(r => r.lieu);
+                imported.regles = config.regles.length;
+            }
+
+            saveConfig();
+            renderCfgPersonnel(); renderCfgEnfants(); renderCfgLieux(); renderCfgRegles();
+            refreshLieuDatalist(); refreshZoneSelects();
+            alert(`✅ Import global terminé :\n📍 ${imported.lieux} lieux\n👔 ${imported.personnel} personnel\n👶 ${imported.enfants} enfants\n🔷 ${imported.regles} règles PPMS`);
+        } catch(err) {
+            alert('Erreur lecture Excel : ' + err.message);
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+}
+
+function controleCoherence() {
+    const issues = [];
+    // 1. Personnel sans lieu
+    const sansLieu = config.personnel.filter(p => !p.lieu);
+    if (sansLieu.length > 0) {
+        issues.push(`⚠️ ${sansLieu.length} personnel sans lieu d'origine : ${sansLieu.slice(0,5).map(p => p.nom+' '+p.prenom).join(', ')}${sansLieu.length > 5 ? '...' : ''}`);
+    }
+    // 2. Personnel avec lieu non trouvé dans Lieux
+    const lieuxNoms = new Set((config.lieux||[]).map(l => l.nom.toLowerCase()));
+    const lieuxInconnus = config.personnel.filter(p => p.lieu && !lieuxNoms.has(p.lieu.toLowerCase()));
+    if (lieuxInconnus.length > 0) {
+        issues.push(`⚠️ ${lieuxInconnus.length} personnel avec lieu inconnu dans le référentiel Lieux : ${lieuxInconnus.slice(0,5).map(p => p.lieu).join(', ')}${lieuxInconnus.length > 5 ? '...' : ''}`);
+    }
+    // 3. Enfants avec groupe non trouvé dans Lieux
+    const enfInconnus = config.enfants.filter(e => e.groupe && !lieuxNoms.has(e.groupe.toLowerCase()));
+    if (enfInconnus.length > 0) {
+        issues.push(`⚠️ ${enfInconnus.length} enfants avec groupe/lieu inconnu : ${enfInconnus.slice(0,5).map(e => e.groupe).join(', ')}${enfInconnus.length > 5 ? '...' : ''}`);
+    }
+    // 4. Lieux sans règle PPMS
+    const reglesLieux = new Set((config.regles||[]).map(r => r.lieu.toLowerCase()));
+    const lieuxSansRegle = (config.lieux||[]).filter(l => !reglesLieux.has(l.nom.toLowerCase()));
+    if (lieuxSansRegle.length > 0) {
+        issues.push(`⚠️ ${lieuxSansRegle.length} lieux sans règle PPMS : ${lieuxSansRegle.map(l => l.nom).join(', ')}`);
+    }
+    // 5. Règles avec destination inconnue (pas une zone PPMS)
+    const zoneNoms = new Set(config.zones.map(z => z.nom.toLowerCase()));
+    zoneNoms.add('confinement sur place');
+    const cols = ['ppms_normal','intrusion_externe','attentat','accident','tempete','inondation'];
+    let destInconnues = new Set();
+    (config.regles||[]).forEach(r => {
+        cols.forEach(c => {
+            const dest = (r[c]||'').trim().toLowerCase();
+            if (dest && !zoneNoms.has(dest)) destInconnues.add(r[c]);
+        });
+    });
+    if (destInconnues.size > 0) {
+        issues.push(`⚠️ Destinations de règles non trouvées dans les zones PPMS : ${[...destInconnues].join(', ')}`);
+    }
+    // Résultat
+    if (issues.length === 0) {
+        alert('✅ Contrôle de cohérence OK !\n\nAucune anomalie détectée.\n\n' +
+              `📍 ${(config.lieux||[]).length} lieux\n👔 ${config.personnel.length} personnel\n👶 ${config.enfants.length} enfants\n🔷 ${(config.regles||[]).length} règles PPMS`);
+    } else {
+        alert('🔧 Contrôle de cohérence — ' + issues.length + ' anomalie(s) :\n\n' + issues.join('\n\n'));
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// SCENARIO MODAL
+// ─────────────────────────────────────────────────────────────────────────
+function openScenario() {
+    document.getElementById('scType').value = exercise.scenario.type || 'intrusion-externe';
+    document.getElementById('scDescription').value = exercise.scenario.description || '';
+    document.getElementById('scObjectifs').value   = exercise.scenario.objectifs || '';
+    document.getElementById('modalScenario').style.display = 'flex';
+}
+
+function closeScenario() {
+    document.getElementById('modalScenario').style.display = 'none';
+}
+
+function updateScenarioText() {
+    const type = document.getElementById('scType').value;
+    if (type !== 'personnalise' && SCENARIOS_DATA[type]) {
+        document.getElementById('scDescription').value = SCENARIOS_DATA[type].description;
+        document.getElementById('scObjectifs').value   = SCENARIOS_DATA[type].objectifs;
+    }
+}
+
+function saveScenario() {
+    const prevType = exercise.scenario.type;
+    const newType  = document.getElementById('scType').value;
+    exercise.scenario = {
+        type:        newType,
+        description: document.getElementById('scDescription').value,
+        objectifs:   document.getElementById('scObjectifs').value
+    };
+    // Si scénario change, recalculer les zones depuis Config
+    if (newType !== prevType) {
+        loadFromConfig_silent();
+    }
+    saveExercise();
+    closeScenario();
+    updateScenarioBanner();
+    renderAllZones();
+    alert('✅ Scénario enregistré avec succès !');
+}
+
+function loadFromConfig_silent() {
+    const scenarioType = exercise.scenario.type;
+    config.personnel.forEach(cp => {
+        const existing = exercise.personnel.find(p => p.nom === cp.nom && p.prenom === cp.prenom);
+        if (existing) {
+            existing.zone_slug = (scenarioType === 'intrusion-interne') ? null
+                               : resolveZoneFromRules(cp.lieu || '', scenarioType);
+            existing.lieu_origine = cp.lieu || '';
+            existing.status = 'pending';
+            existing.autre_zone_slug = null;
+        }
+    });
+    config.enfants.forEach(ce => {
+        const existing = exercise.enfants.find(p => p.nom === ce.nom && p.prenom === ce.prenom);
+        if (existing) {
+            existing.zone_slug = (scenarioType === 'intrusion-interne') ? null
+                               : resolveZoneFromRules(ce.groupe || '', scenarioType);
+            existing.lieu_origine = ce.groupe || '';
+            existing.status = 'pending';
+            existing.autre_zone_slug = null;
+        }
+    });
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// EXPORTER / IMPORTER STATUTS (JSON)
+// ─────────────────────────────────────────────────────────────────────────
+function exportStatuts() {
+    const payload = {
+        date: new Date().toISOString(),
+        scenario: exercise.scenario,
+        personnel: exercise.personnel,
+        enfants:   exercise.enfants,
+        zonePhones: exercise.zonePhones
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `PPMS_Statuts_${new Date().toISOString().slice(0,16).replace('T','_').replace(/:/g,'-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importStatuts(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const payload = JSON.parse(e.target.result);
+            if (!payload.personnel || !payload.enfants) { alert('Fichier invalide.'); return; }
+
+            // Fusionner statuts (update statuts existants + ajouter nouveaux)
+            let updated = 0;
+            payload.personnel.forEach(incoming => {
+                const existing = exercise.personnel.find(p => p.nom === incoming.nom && p.prenom === incoming.prenom);
+                if (existing) {
+                    existing.status = incoming.status;
+                    existing.autre_zone_slug = incoming.autre_zone_slug || null;
+                    updated++;
+                } else {
+                    exercise.personnel.push({ ...incoming, uid: makeId() });
+                    updated++;
+                }
+            });
+            payload.enfants.forEach(incoming => {
+                const existing = exercise.enfants.find(p => p.nom === incoming.nom && p.prenom === incoming.prenom);
+                if (existing) {
+                    existing.status = incoming.status;
+                    existing.autre_zone_slug = incoming.autre_zone_slug || null;
+                    updated++;
+                } else {
+                    exercise.enfants.push({ ...incoming, uid: makeId() });
+                    updated++;
+                }
+            });
+            if (payload.zonePhones) {
+                Object.assign(exercise.zonePhones, payload.zonePhones);
+            }
+
+            saveExercise();
+            renderAllZones();
+            alert(`✅ Statuts importés et fusionnés !\n🔄 ${updated} mise(s) à jour`);
+        } catch(err) {
+            alert('Erreur lecture JSON : ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// VÉRIFIER DONNÉES
+// ─────────────────────────────────────────────────────────────────────────
+function checkData() {
+    const ts = localStorage.getItem(KEY_EXER + '_ts');
+    const dateStr = ts ? new Date(ts).toLocaleString('fr-FR') : 'Jamais';
+
+    const allP = exercise.personnel;
+    const allE = exercise.enfants;
+    const all  = [...allP, ...allE];
+
+    const presents = all.filter(p => p.status === 'present').length;
+    const absents  = all.filter(p => p.status === 'absent').length;
+    const autre    = all.filter(p => p.status === 'autre-zone').length;
+    const sortie   = all.filter(p => p.status === 'sortie-exterieure').length;
+    const pending  = all.filter(p => p.status === 'pending').length;
+    const localises = presents + autre + sortie;
+
+    alert(`📊 État des données :\n\n` +
+          `Personnel exercice : ${allP.length}\n` +
+          `Enfants exercice : ${allE.length}\n` +
+          `Total : ${all.length}\n\n` +
+          `✅ Présents (zone) : ${presents}\n` +
+          `🔄 Autre zone : ${autre}\n` +
+          `🚌 Sortie ext. : ${sortie}\n` +
+          `❌ Absents : ${absents}\n` +
+          `⏳ À vérifier : ${pending}\n\n` +
+          `📍 Localisés : ${localises} / ${all.length}\n\n` +
+          `💾 Config : ${config.personnel.length} personnel, ${config.enfants.length} enfants, ${config.zones.length} zones\n\n` +
+          `🕐 Dernière sauvegarde : ${dateStr}`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// RÉINITIALISER
+// ─────────────────────────────────────────────────────────────────────────
+function resetAll() {
+    if (!confirm('⚠️ Réinitialiser toutes les données de l\'exercice ?\n(La Config est conservée)\n\nCette action est irréversible !')) return;
+    exercise.personnel  = [];
+    exercise.enfants    = [];
+    exercise.zonePhones = {};
+    exercise.scenario   = {
+        type: 'intrusion-externe',
+        description: SCENARIOS_DATA['intrusion-externe'].description,
+        objectifs: SCENARIOS_DATA['intrusion-externe'].objectifs
+    };
+    saveExercise();
+    renderAllZones();
+    updateScenarioBanner();
+    document.getElementById('statusPersonnel').textContent = '';
+    document.getElementById('statusEnfants').textContent   = '';
+    alert('✓ Exercice réinitialisé. La configuration (zones, personnel, enfants) est conservée.');
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// EXPORT EXCEL RAPPORT
+// ─────────────────────────────────────────────────────────────────────────
+function exportExcel() {
+    const wb  = XLSX.utils.book_new();
+    const now = new Date().toLocaleString('fr-FR');
+
+    const allP = exercise.personnel;
+    const allE = exercise.enfants;
+    const all  = [...allP, ...allE];
+    const total = all.length;
+
+    const presents      = all.filter(p => p.status === 'present').length;
+    const autreZone     = all.filter(p => p.status === 'autre-zone').length;
+    const sortieExt     = all.filter(p => p.status === 'sortie-exterieure').length;
+    const absents       = all.filter(p => p.status === 'absent').length;
+    const pending       = all.filter(p => p.status === 'pending').length;
+    const localises     = presents + autreZone + sortieExt;
+
+    const pct = (n) => total > 0 ? `${((n/total)*100).toFixed(1)}%` : '0.0%';
+
+    // ── Feuille 1 : Page de garde ──────────────────────────────────────
+    const pageGarde = [
+        ['🏥 EXERCICE PPMS - PLAN PARTICULIER DE MISE EN SÛRETÉ'],[''],
+        ['═══════════════════════════════════════════════════════'],
+        ['📍 ÉTABLISSEMENT'],
+        ['═══════════════════════════════════════════════════════'],
+        ['Nom:',  'Établissement'],
+        [''],
+        ['═══════════════════════════════════════════════════════'],
+        ['🚨 CONTEXTE DE L\'EXERCICE PPMS'],
+        ['═══════════════════════════════════════════════════════'],
+        ['Date de l\'exercice:', now],
+        ['Type de scénario:', exercise.scenario.type || ''],
+        [''],
+        ['SCÉNARIO:'],
+    ];
+    (exercise.scenario.description || '').split('\n').forEach(l => pageGarde.push([l]));
+    pageGarde.push([''], ['OBJECTIFS DE L\'EXERCICE:']);
+    (exercise.scenario.objectifs || '').split('\n').forEach(l => pageGarde.push([l]));
+    const ws1 = XLSX.utils.aoa_to_sheet(pageGarde);
+    ws1['!cols'] = [{wch:25},{wch:70}];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Page de garde');
+
+    // ── Feuille 2 : Statistiques ───────────────────────────────────────
+    const stats = [
+        ['📊 RÉCAPITULATIF EXERCICE PPMS'],
+        ['Date exercice:', now],
+        ['═══════════════════════════════════'],
+        ['Indicateur','Nombre','Pourcentage'],
+        ['Total personnes', total, '100%'],
+        ['✅ Présents localisés (total)', localises, pct(localises)],
+        ['  └─ Dans leur zone normale', presents, pct(presents)],
+        ['  └─ 🔄 Dans une autre zone', autreZone, pct(autreZone)],
+        ['  └─ 🚌 En sortie extérieure', sortieExt, pct(sortieExt)],
+        ['❌ Absents (non localisés)', absents, pct(absents)],
+        ['⏳ À vérifier', pending, pct(pending)],
+        ['═══════════════════════════════════'],
+        ['Personnel total', allP.length, ''],
+        ['Enfants total', allE.length, ''],
+    ];
+    const ws2 = XLSX.utils.aoa_to_sheet(stats);
+    ws2['!cols'] = [{wch:35},{wch:12},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Statistiques');
+
+    // ── Feuille 3 : Détail par zone ────────────────────────────────────
+    const zoneRows = [['Zone','Bâtiment','Étage','Type Personne','Nom','Prénom','Statut','Lieu d\'origine','Zone destination','Téléphone zone']];
+    config.zones.filter(z => z.slug !== 'sortie-exterieure').forEach(zone => {
+        const tel = exercise.zonePhones[zone.slug] || '';
+        const persons = [
+            ...exercise.personnel.filter(p => p.zone_slug === zone.slug).map(p => ({...p, tp:'Personnel'})),
+            ...exercise.enfants.filter(p => p.zone_slug === zone.slug).map(p => ({...p, tp:'Enfant'})),
+        ];
+        if (persons.length === 0) {
+            zoneRows.push([zone.nom, zone.batiment, zone.etage||'RDC', '—','—','—','—','—','—', tel]);
+        } else {
+            persons.forEach((p, i) => {
+                const destZ = p.status === 'autre-zone' && p.autre_zone_slug
+                    ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom
+                    : '';
+                const statLabels = { 'present':'Présent','absent':'Absent','autre-zone':'Autre zone','sortie-exterieure':'Sortie ext.','pending':'À vérifier' };
+                zoneRows.push([
+                    i === 0 ? zone.nom : '',
+                    i === 0 ? zone.batiment : '',
+                    i === 0 ? (zone.etage||'RDC') : '',
+                    p.tp, p.nom, p.prenom,
+                    statLabels[p.status] || p.status,
+                    p.lieu_origine || '',
+                    destZ,
+                    i === 0 ? tel : ''
+                ]);
+            });
+        }
+    });
+    const ws3 = XLSX.utils.aoa_to_sheet(zoneRows);
+    ws3['!cols'] = [{wch:22},{wch:14},{wch:12},{wch:14},{wch:18},{wch:16},{wch:14},{wch:22},{wch:22},{wch:20}];
+    XLSX.utils.book_append_sheet(wb, ws3, 'Détail par zone');
+
+    // ── Feuille 4 : Personnel complet ──────────────────────────────────
+    const persRows = [['Nom','Prénom','Zone assignée','Statut','Zone destination','Lieu d\'origine']];
+    exercise.personnel.forEach(p => {
+        const z = config.zones.find(z=>z.slug===p.zone_slug);
+        const destZ = p.status==='autre-zone'&&p.autre_zone_slug ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom : '';
+        const statLabels = { 'present':'✅ Présent','absent':'❌ Absent','autre-zone':'🔄 Autre zone','sortie-exterieure':'🚌 Sortie ext.','pending':'⏳ À vérifier' };
+        persRows.push([p.nom,p.prenom,z?z.nom:'',statLabels[p.status]||p.status,destZ,p.lieu_origine||'']);
+    });
+    const ws4 = XLSX.utils.aoa_to_sheet(persRows);
+    ws4['!cols'] = [{wch:20},{wch:18},{wch:22},{wch:18},{wch:22},{wch:22}];
+    XLSX.utils.book_append_sheet(wb, ws4, 'Personnel');
+
+    // ── Feuille 5 : Enfants complet ────────────────────────────────────
+    const enfRows = [['Nom','Prénom','Zone assignée','Statut','Zone destination','Lieu d\'origine']];
+    exercise.enfants.forEach(p => {
+        const z = config.zones.find(z=>z.slug===p.zone_slug);
+        const destZ = p.status==='autre-zone'&&p.autre_zone_slug ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom : '';
+        const statLabels = { 'present':'✅ Présent','absent':'❌ Absent','autre-zone':'🔄 Autre zone','sortie-exterieure':'🚌 Sortie ext.','pending':'⏳ À vérifier' };
+        enfRows.push([p.nom,p.prenom,z?z.nom:'',statLabels[p.status]||p.status,destZ,p.lieu_origine||'']);
+    });
+    const ws5 = XLSX.utils.aoa_to_sheet(enfRows);
+    ws5['!cols'] = [{wch:20},{wch:18},{wch:22},{wch:18},{wch:22},{wch:22}];
+    XLSX.utils.book_append_sheet(wb, ws5, 'Enfants');
+
+    const dateFile = new Date().toISOString().slice(0,16).replace('T','_').replace(/:/g,'-');
+    XLSX.writeFile(wb, `Rapport_PPMS_${dateFile}.xlsx`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────
+async function init() {
+    await loadAll();
+    updateScenarioBanner();
+    renderAllZones();
+    initWebSocket();
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
+        }
+    });
+}
+
+init();
+</script>
+</body>
+</html>

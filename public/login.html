@@ -204,37 +204,51 @@ body {
 </div>
 
 <script>
-// ── Building particle animation ──
+// ── Building particle animation — IME briques rouges ──
 (function() {
   const canvas = document.getElementById('particleCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   let W, H, w, h, particles = [], targets = [];
-  const CELL = 10, GAP = 2;
-  const SPEED = 0.015;
+  const CELL = 10, GAP = 1;
+  const STEP = CELL + GAP;
+  const SPEED = 0.018;
   let phase = 0, phaseTimer = 0;
-  // phase 0 = assemble, phase 1 = hold, phase 2 = disperse
 
-  // Building pixel art (1=filled, 0=empty)
-  // School with roof, windows, door, flag
+  // Palette de couleurs
+  // 1=brique rouge  2=vitre bleu  3=toiture gris fonce  4=feuillage vert
+  // 5=tronc marron  6=herbe vert clair  7=porte marron fonce
+  const PALETTE = {
+    1: [185, 85, 55],    // brique rouge
+    2: [90, 155, 210],   // baie vitree bleu acier
+    3: [48, 52, 62],     // toiture gris ardoise
+    4: [55, 135, 65],    // feuillage vert
+    5: [115, 72, 35],    // tronc marron
+    6: [75, 155, 55],    // herbe verte
+    7: [80, 48, 25],     // porte marron fonce
+  };
+
+  // Pixel art batiment style IME Léopold Bellan
+  // 32 colonnes x 17 lignes
+  // Arbres a gauche et droite, toiture sombre, briques, baies vitrees, porte
   const building = [
-    [0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0],
-    [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
-    [0,0,1,0,1,0,1,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,1,0],
-    [0,0,1,0,1,0,1,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,1,0],
-    [0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0],
-    [0,0,1,0,1,0,1,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,1,0],
-    [0,0,1,0,1,0,1,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,1,0],
-    [0,0,1,1,1,1,1,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0],
-    [0,0,1,0,1,0,1,0,0,1,0,0,1,0,1,0,1,0,1,0,1,0,1,0],
-    [0,0,1,0,1,0,1,0,0,1,0,0,1,0,1,0,1,0,1,0,1,0,1,0],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4],
+    [4,4,4,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,4,4,4],
+    [4,5,4,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,4,5,4],
+    [0,5,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,5,0],
+    [0,5,0,1,2,2,2,1,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,1,2,2,2,1,0,5,0],
+    [0,5,0,1,2,2,2,1,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,1,2,2,2,1,0,5,0],
+    [0,5,0,1,2,2,2,1,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,1,2,2,2,1,0,5,0],
+    [0,5,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,5,0],
+    [0,5,0,1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,0,5,0],
+    [0,5,0,1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,0,5,0],
+    [0,5,0,1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,0,5,0],
+    [0,5,0,1,2,2,2,2,2,2,2,2,7,7,7,7,7,7,7,7,7,2,2,2,2,2,2,2,1,0,5,0],
+    [0,5,0,1,2,2,2,2,2,2,2,2,7,7,7,7,7,7,7,7,7,2,2,2,2,2,2,2,1,0,5,0],
+    [0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
+    [0,0,0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0,0,0],
+    [0,0,0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0,0,0],
+    [0,0,0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0,0,0],
   ];
 
   function resize() {
@@ -249,72 +263,72 @@ body {
   function buildTargets() {
     targets = [];
     const rows = building.length, cols = building[0].length;
-    const bw = cols * (CELL + GAP), bh = rows * (CELL + GAP);
-    const ox = w - bw - 20, oy = 10;
+    const bw = cols * STEP, bh = rows * STEP;
+    const ox = Math.round((w - bw) / 2);
+    const oy = Math.round((h - bh) / 2);
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        if (building[r][c]) {
+        const v = building[r][c];
+        if (v) {
           targets.push({
-            x: ox + c * (CELL + GAP) + CELL/2,
-            y: oy + r * (CELL + GAP) + CELL/2
+            x: ox + c * STEP + CELL / 2,
+            y: oy + r * STEP + CELL / 2,
+            color: PALETTE[v] || [200, 200, 200]
           });
         }
       }
     }
-    // Init particles if needed
     while (particles.length < targets.length) {
       particles.push({
         x: Math.random() * w, y: Math.random() * h,
         tx: 0, ty: 0, size: CELL,
-        alpha: 0.2 + Math.random() * 0.25,
+        color: [200, 200, 200],
+        alpha: 0.85 + Math.random() * 0.15,
         pulse: Math.random() * Math.PI * 2,
-        pulseSpeed: 0.008 + Math.random() * 0.015,
+        pulseSpeed: 0.006 + Math.random() * 0.012,
         vx: (Math.random() - 0.5) * 1.5,
         vy: (Math.random() - 0.5) * 1.5
       });
     }
     particles.length = targets.length;
-    // Shuffle targets assignment
+    assignTargets();
+  }
+
+  function assignTargets() {
     const shuffled = [...targets].sort(() => Math.random() - 0.5);
-    particles.forEach((p, i) => { p.tx = shuffled[i].x; p.ty = shuffled[i].y; });
+    particles.forEach((p, i) => {
+      p.tx = shuffled[i].x;
+      p.ty = shuffled[i].y;
+      p.color = shuffled[i].color;
+    });
   }
 
   window.addEventListener('resize', resize);
   resize();
 
-  let frame = 0;
   function draw() {
-    frame++;
     ctx.clearRect(0, 0, w, h);
 
-    // Phase management
     if (phase === 0) {
-      // Assembling
       let allClose = true;
       particles.forEach(p => {
         const dx = p.tx - p.x, dy = p.ty - p.y;
-        if (Math.abs(dx) > 1 || Math.abs(dy) > 1) allClose = false;
+        if (Math.abs(dx) > 1.5 || Math.abs(dy) > 1.5) allClose = false;
         p.x += dx * SPEED;
         p.y += dy * SPEED;
       });
       if (allClose) { phase = 1; phaseTimer = 0; }
     } else if (phase === 1) {
-      // Hold — gentle pulse in place
       phaseTimer++;
       particles.forEach(p => {
         p.x += (p.tx - p.x) * 0.1;
         p.y += (p.ty - p.y) * 0.1;
       });
-      if (phaseTimer > 300) { phase = 2; phaseTimer = 0; }
+      if (phaseTimer > 320) { phase = 2; phaseTimer = 0; }
     } else {
-      // Disperse
       phaseTimer++;
-      particles.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-      });
-      if (phaseTimer > 180) {
-        // Reset: scatter randomly and re-assign targets
+      particles.forEach(p => { p.x += p.vx; p.y += p.vy; });
+      if (phaseTimer > 160) {
         phase = 0;
         particles.forEach(p => {
           p.x = Math.random() * w;
@@ -322,40 +336,29 @@ body {
           p.vx = (Math.random() - 0.5) * 1.5;
           p.vy = (Math.random() - 0.5) * 1.5;
         });
-        const shuffled = [...targets].sort(() => Math.random() - 0.5);
-        particles.forEach((p, i) => { p.tx = shuffled[i].x; p.ty = shuffled[i].y; });
+        assignTargets();
       }
     }
 
-    // Draw particles
     particles.forEach(p => {
       p.pulse += p.pulseSpeed;
-      const a = p.alpha * (0.7 + 0.3 * Math.sin(p.pulse));
+      const glow = phase === 1 ? 0.08 + 0.04 * Math.sin(p.pulse) : 0;
+      const [r, g, b] = p.color;
+      const a = p.alpha * (0.88 + 0.12 * Math.sin(p.pulse));
 
-      ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + a * 0.4})`;
+      // Léger halo pendant la phase assemblée
+      if (phase === 1 && glow > 0) {
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${glow})`;
+        ctx.beginPath();
+        ctx.roundRect(p.x - p.size / 2 - 2, p.y - p.size / 2 - 2, p.size + 4, p.size + 4, 3);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
       ctx.beginPath();
-      ctx.roundRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size, 1.5);
+      ctx.roundRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size, 2);
       ctx.fill();
     });
-
-    // Draw faint connections during assembly
-    if (phase === 0) {
-      for (let i = 0; i < particles.length; i += 3) {
-        for (let j = i + 1; j < particles.length; j += 3) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          if (dist < 60) {
-            ctx.strokeStyle = `rgba(255, 255, 255, ${0.03 * (1 - dist/60)})`;
-            ctx.lineWidth = 0.5;
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
-          }
-        }
-      }
-    }
 
     requestAnimationFrame(draw);
   }

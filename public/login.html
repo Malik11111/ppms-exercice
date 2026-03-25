@@ -21,7 +21,7 @@ body {
   color: white;
   flex-direction: column;
   justify-content: space-between;
-  padding: 48px;
+  padding: 36px 48px;
   overflow: hidden;
 }
 @media (min-width: 900px) { .left-panel { display: flex; } }
@@ -47,29 +47,6 @@ body {
 }
 .left-brand-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; color: #7eb8e0; }
 .left-brand-name { font-size: 20px; font-weight: 800; }
-
-.left-hero {
-  position: relative; z-index: 1; max-width: 480px;
-}
-.left-hero h2 {
-  font-size: 2.4em; font-weight: 800; line-height: 1.15; letter-spacing: -0.5px;
-}
-.left-hero p {
-  margin-top: 18px; font-size: 1.05em; line-height: 1.6; color: #a0c4e0;
-}
-.left-features {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 36px;
-}
-.feature-card {
-  background: rgba(255,255,255,0.08);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 14px;
-  padding: 16px;
-}
-.feature-card .icon { font-size: 22px; margin-bottom: 10px; }
-.feature-card .title { font-size: 13px; font-weight: 700; }
-.feature-card .desc { font-size: 11px; color: #7eb8e0; margin-top: 4px; }
 
 .left-footer {
   position: relative; z-index: 1;
@@ -143,7 +120,7 @@ body {
 </head>
 <body>
 
-<!-- ══ LEFT PANEL ══ -->
+<!-- LEFT PANEL -->
 <div class="left-panel">
   <canvas id="particleCanvas"></canvas>
 
@@ -155,27 +132,11 @@ body {
     </div>
   </div>
 
-  <div class="left-hero">
-    <h2>Gerez votre exercice PPMS en temps reel.</h2>
-    <p>Suivez le personnel et les enfants, coordonnez les zones de mise en surete et generez le rapport final en un clic.</p>
-    <div class="left-features">
-      <div class="feature-card">
-        <div class="icon">👥</div>
-        <div class="title">Suivi en direct</div>
-        <div class="desc">Multi-utilisateurs simultanes</div>
-      </div>
-      <div class="feature-card">
-        <div class="icon">🏢</div>
-        <div class="title">Multi-batiments</div>
-        <div class="desc">Zones, etages et batiments</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="left-footer">PPMS - Plan Particulier de Mise en Surete</div>
+  <div style="flex:1;"></div>
+  <div class="left-footer"></div>
 </div>
 
-<!-- ══ RIGHT PANEL ══ -->
+<!-- RIGHT PANEL -->
 <div class="right-panel">
   <div class="login-card">
     <div class="login-header">
@@ -204,52 +165,81 @@ body {
 </div>
 
 <script>
-// ── Building particle animation — IME briques rouges ──
+// ── IME Léopold Bellan — bâtiment pixel art + texte en particules ──
 (function() {
   const canvas = document.getElementById('particleCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   let W, H, w, h, particles = [], targets = [];
-  const CELL = 10, GAP = 1;
-  const STEP = CELL + GAP;
-  const SPEED = 0.018;
+  const CELL = 8, GAP = 1, STEP = 9;
+  const SPEED = 0.02;
   let phase = 0, phaseTimer = 0;
 
-  // Palette de couleurs
-  // 1=brique rouge  2=vitre bleu  3=toiture gris fonce  4=feuillage vert
-  // 5=tronc marron  6=herbe vert clair  7=porte marron fonce
-  const PALETTE = {
-    1: [185, 85, 55],    // brique rouge
-    2: [90, 155, 210],   // baie vitree bleu acier
-    3: [48, 52, 62],     // toiture gris ardoise
-    4: [55, 135, 65],    // feuillage vert
-    5: [115, 72, 35],    // tronc marron
-    6: [75, 155, 55],    // herbe verte
-    7: [80, 48, 25],     // porte marron fonce
+  // Palette : 1=brique 2=vitre 3=toit 4=feuillage 5=tronc 6=herbe 7=porte 8=texte
+  const PAL = {
+    1: [185, 85, 55],
+    2: [90, 155, 210],
+    3: [48, 52, 62],
+    4: [55, 140, 60],
+    5: [115, 72, 35],
+    6: [65, 145, 50],
+    7: [80, 48, 25],
+    8: [200, 215, 235],
   };
 
-  // Pixel art batiment style IME Léopold Bellan
-  // 32 colonnes x 17 lignes
-  // Arbres a gauche et droite, toiture sombre, briques, baies vitrees, porte
-  const building = [
-    [4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4],
-    [4,4,4,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,4,4,4],
-    [4,5,4,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,4,5,4],
-    [0,5,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,5,0],
-    [0,5,0,1,2,2,2,1,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,1,2,2,2,1,0,5,0],
-    [0,5,0,1,2,2,2,1,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,1,2,2,2,1,0,5,0],
-    [0,5,0,1,2,2,2,1,2,2,2,1,2,2,2,1,1,2,2,2,1,2,2,2,1,2,2,2,1,0,5,0],
-    [0,5,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,5,0],
-    [0,5,0,1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,0,5,0],
-    [0,5,0,1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,0,5,0],
-    [0,5,0,1,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,0,5,0],
-    [0,5,0,1,2,2,2,2,2,2,2,2,7,7,7,7,7,7,7,7,7,2,2,2,2,2,2,2,1,0,5,0],
-    [0,5,0,1,2,2,2,2,2,2,2,2,7,7,7,7,7,7,7,7,7,2,2,2,2,2,2,2,1,0,5,0],
-    [0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0],
-    [0,0,0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0,0,0],
-    [0,0,0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0,0,0],
-    [0,0,0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0,0,0],
+  // Bâtiment IME — 44 colonnes x 25 lignes — plus grand, plus détaillé
+  // Arbres multiples, auvent, panneaux solaires, clôture
+  const B = [
+    //0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
+    [4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4],
+    [4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4],
+    [4,4,4,4,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,4,4,4,4],
+    [4,4,5,4,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,4,5,4,4],
+    [0,4,5,4,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,4,5,4,0],
+    [0,4,5,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,5,4,0],
+    [0,0,5,0,0,0,1,2,2,2,1,2,2,2,1,2,2,2,1,1,1,1,1,1,1,1,2,2,2,1,2,2,2,1,2,2,2,1,0,0,0,5,0,0],
+    [0,0,5,0,0,0,1,2,2,2,1,2,2,2,1,2,2,2,1,1,1,1,1,1,1,1,2,2,2,1,2,2,2,1,2,2,2,1,0,0,0,5,0,0],
+    [0,0,5,0,0,0,1,2,2,2,1,2,2,2,1,2,2,2,1,1,1,1,1,1,1,1,2,2,2,1,2,2,2,1,2,2,2,1,0,0,0,5,0,0],
+    [0,0,5,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,5,0,0],
+    [0,0,5,0,0,0,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,1,0,0,0,5,0,0],
+    [0,0,5,0,0,0,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,1,0,0,0,5,0,0],
+    [0,0,5,0,0,0,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,1,0,0,0,5,0,0],
+    [0,0,5,0,0,0,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,1,0,0,0,5,0,0],
+    [0,4,5,0,0,0,1,2,2,2,2,2,2,2,1,7,7,7,7,7,7,7,7,7,7,1,2,2,2,2,2,2,2,1,2,2,2,1,0,0,4,5,4,0],
+    [0,4,5,4,0,0,1,2,2,2,2,2,2,2,1,7,7,7,7,7,7,7,7,7,7,1,2,2,2,2,2,2,2,1,2,2,2,1,0,0,4,5,4,0],
+    [0,4,5,4,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,4,5,4,0],
+    [4,4,4,4,0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0,4,4,4,4],
+    [4,4,4,0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0,4,4,4],
+    [0,0,0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0,0,0],
   ];
+
+  // Texte "Pole Epileptique Leopold Bellan" via canvas mesure
+  function textToTargets(text, startX, startY, fontSize, color) {
+    const offscreen = document.createElement('canvas');
+    const octx = offscreen.getContext('2d');
+    octx.font = `bold ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+    const m = octx.measureText(text);
+    const tw = Math.ceil(m.width);
+    const th = Math.ceil(fontSize * 1.3);
+    offscreen.width = tw;
+    offscreen.height = th;
+    octx.font = `bold ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+    octx.fillStyle = '#fff';
+    octx.textBaseline = 'top';
+    octx.fillText(text, 0, 0);
+    const imgData = octx.getImageData(0, 0, tw, th);
+    const pts = [];
+    const step = Math.max(3, Math.floor(CELL * 0.55));
+    for (let y = 0; y < th; y += step) {
+      for (let x = 0; x < tw; x += step) {
+        const idx = (y * tw + x) * 4;
+        if (imgData.data[idx + 3] > 120) {
+          pts.push({ x: startX + x, y: startY + y, color: color });
+        }
+      }
+    }
+    return pts;
+  }
 
   function resize() {
     const dpr = devicePixelRatio;
@@ -262,22 +252,46 @@ body {
 
   function buildTargets() {
     targets = [];
-    const rows = building.length, cols = building[0].length;
+    const rows = B.length, cols = B[0].length;
     const bw = cols * STEP, bh = rows * STEP;
     const ox = Math.round((w - bw) / 2);
-    const oy = Math.round((h - bh) / 2);
+    const oy = Math.round(h * 0.12);
+
+    // Building targets
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const v = building[r][c];
+        const v = B[r][c];
         if (v) {
           targets.push({
             x: ox + c * STEP + CELL / 2,
             y: oy + r * STEP + CELL / 2,
-            color: PALETTE[v] || [200, 200, 200]
+            color: PAL[v]
           });
         }
       }
     }
+
+    // Texte en dessous du bâtiment
+    const textY = oy + rows * STEP + 24;
+    const fontSize = Math.max(14, Math.min(22, w * 0.035));
+    const textColor = PAL[8];
+
+    // Mesurer pour centrer
+    const offscreen = document.createElement('canvas');
+    const octx = offscreen.getContext('2d');
+    octx.font = `bold ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+    const line1 = 'Pole Epileptique';
+    const line2 = 'Leopold Bellan';
+    const w1 = octx.measureText(line1).width;
+    const w2 = octx.measureText(line2).width;
+    const x1 = Math.round((w - w1) / 2);
+    const x2 = Math.round((w - w2) / 2);
+
+    const t1 = textToTargets(line1, x1, textY, fontSize, textColor);
+    const t2 = textToTargets(line2, x2, textY + fontSize * 1.4, fontSize, textColor);
+    targets.push(...t1, ...t2);
+
+    // Resize / init particles
     while (particles.length < targets.length) {
       particles.push({
         x: Math.random() * w, y: Math.random() * h,
@@ -286,8 +300,8 @@ body {
         alpha: 0.85 + Math.random() * 0.15,
         pulse: Math.random() * Math.PI * 2,
         pulseSpeed: 0.006 + Math.random() * 0.012,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: (Math.random() - 0.5) * 1.5
+        vx: (Math.random() - 0.5) * 1.8,
+        vy: (Math.random() - 0.5) * 1.8
       });
     }
     particles.length = targets.length;
@@ -300,6 +314,8 @@ body {
       p.tx = shuffled[i].x;
       p.ty = shuffled[i].y;
       p.color = shuffled[i].color;
+      // texte particles are smaller
+      p.size = (shuffled[i].color === PAL[8]) ? Math.max(3, CELL * 0.5) : CELL;
     });
   }
 
@@ -324,17 +340,17 @@ body {
         p.x += (p.tx - p.x) * 0.1;
         p.y += (p.ty - p.y) * 0.1;
       });
-      if (phaseTimer > 320) { phase = 2; phaseTimer = 0; }
+      if (phaseTimer > 350) { phase = 2; phaseTimer = 0; }
     } else {
       phaseTimer++;
       particles.forEach(p => { p.x += p.vx; p.y += p.vy; });
-      if (phaseTimer > 160) {
+      if (phaseTimer > 180) {
         phase = 0;
         particles.forEach(p => {
           p.x = Math.random() * w;
           p.y = Math.random() * h;
-          p.vx = (Math.random() - 0.5) * 1.5;
-          p.vy = (Math.random() - 0.5) * 1.5;
+          p.vx = (Math.random() - 0.5) * 1.8;
+          p.vy = (Math.random() - 0.5) * 1.8;
         });
         assignTargets();
       }
@@ -342,21 +358,22 @@ body {
 
     particles.forEach(p => {
       p.pulse += p.pulseSpeed;
-      const glow = phase === 1 ? 0.08 + 0.04 * Math.sin(p.pulse) : 0;
       const [r, g, b] = p.color;
       const a = p.alpha * (0.88 + 0.12 * Math.sin(p.pulse));
+      const s = p.size;
 
-      // Léger halo pendant la phase assemblée
-      if (phase === 1 && glow > 0) {
+      // Halo glow in hold phase
+      if (phase === 1) {
+        const glow = 0.06 + 0.03 * Math.sin(p.pulse);
         ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${glow})`;
         ctx.beginPath();
-        ctx.roundRect(p.x - p.size / 2 - 2, p.y - p.size / 2 - 2, p.size + 4, p.size + 4, 3);
+        ctx.roundRect(p.x - s/2 - 1.5, p.y - s/2 - 1.5, s + 3, s + 3, 2.5);
         ctx.fill();
       }
 
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
       ctx.beginPath();
-      ctx.roundRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size, 2);
+      ctx.roundRect(p.x - s/2, p.y - s/2, s, s, s < 5 ? 1 : 2);
       ctx.fill();
     });
 

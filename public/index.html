@@ -1883,29 +1883,89 @@ function importConfigExcel(event, type) {
 // ─────────────────────────────────────────────────────────────────────────
 // EXPORT EXCEL CONFIG
 // ─────────────────────────────────────────────────────────────────────────
+function addListesSheet(wb) {
+    const ws = {};
+    const border = {top:{style:'thin',color:{rgb:'CCCCCC'}},bottom:{style:'thin',color:{rgb:'CCCCCC'}},left:{style:'thin',color:{rgb:'CCCCCC'}},right:{style:'thin',color:{rgb:'CCCCCC'}}};
+    const hdrSt = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'34495E'}},border:border,alignment:{horizontal:'center'}};
+    const cellSt = {font:{sz:10},border:border};
+    // Col A: Lieux
+    const lieux = (config.lieux||[]).map(l => l.nom).filter(Boolean);
+    ws[XLSX.utils.encode_cell({r:0,c:0})] = {v:'Lieux',t:'s',s:hdrSt};
+    lieux.forEach((l,i) => { ws[XLSX.utils.encode_cell({r:i+1,c:0})] = {v:l,t:'s',s:cellSt}; });
+    // Col B: Zones PPMS
+    const zones = (config.zones||[]).map(z => z.nom).filter(Boolean);
+    ws[XLSX.utils.encode_cell({r:0,c:1})] = {v:'Zones PPMS',t:'s',s:hdrSt};
+    zones.forEach((z,i) => { ws[XLSX.utils.encode_cell({r:i+1,c:1})] = {v:z,t:'s',s:cellSt}; });
+    // Col C: Types contrat
+    const contrats = ['CDI','CDD','Vacataire','Stagiaire','Intérimaire','Apprenti','Service civique','Autre'];
+    ws[XLSX.utils.encode_cell({r:0,c:2})] = {v:'Types contrat',t:'s',s:hdrSt};
+    contrats.forEach((c,i) => { ws[XLSX.utils.encode_cell({r:i+1,c:2})] = {v:c,t:'s',s:cellSt}; });
+    // Col D: Types lieu
+    const typesLieu = ['Salle de classe','Bureau','Réfectoire','Dortoir','Salle de sport','Couloir','Hall','Sanitaires','Cour','Autre'];
+    ws[XLSX.utils.encode_cell({r:0,c:3})] = {v:'Types lieu',t:'s',s:hdrSt};
+    typesLieu.forEach((t,i) => { ws[XLSX.utils.encode_cell({r:i+1,c:3})] = {v:t,t:'s',s:cellSt}; });
+    const maxRows = Math.max(lieux.length, zones.length, contrats.length, typesLieu.length) + 1;
+    ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:maxRows-1,c:3}});
+    ws['!cols'] = [{wch:25},{wch:25},{wch:18},{wch:18}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Listes');
+    return { lieuxCount: lieux.length, zonesCount: zones.length, contratsCount: contrats.length, typesLieuCount: typesLieu.length };
+}
+
+function addValidation(ws, col, maxRow, listSheet, listCol, listCount) {
+    if (!ws['!dataValidation']) ws['!dataValidation'] = [];
+    const colLetter = String.fromCharCode(65 + col);
+    const listColLetter = String.fromCharCode(65 + listCol);
+    ws['!dataValidation'].push({
+        sqref: `${colLetter}2:${colLetter}${maxRow}`,
+        type: 'list',
+        formula1: `${listSheet}!$${listColLetter}$2:$${listColLetter}$${listCount + 1}`
+    });
+}
+
+function styledConfigSheet(headers, rows) {
+    const ws = {};
+    const border = {top:{style:'thin',color:{rgb:'CCCCCC'}},bottom:{style:'thin',color:{rgb:'CCCCCC'}},left:{style:'thin',color:{rgb:'CCCCCC'}},right:{style:'thin',color:{rgb:'CCCCCC'}}};
+    const hdrSt = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1A5276'}},border:border,alignment:{horizontal:'center',wrapText:true}};
+    headers.forEach((h,i) => { ws[XLSX.utils.encode_cell({r:0,c:i})] = {v:h,t:'s',s:hdrSt}; });
+    rows.forEach((row, ri) => {
+        const bg = ri % 2 === 0 ? 'F8F9FA' : 'FFFFFF';
+        const cellSt = {font:{sz:10},fill:{fgColor:{rgb:bg}},border:border};
+        row.forEach((v, ci) => { ws[XLSX.utils.encode_cell({r:ri+1,c:ci})] = {v:v||'',t:'s',s:cellSt}; });
+    });
+    ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:headers.length-1}});
+    ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length,c:headers.length-1}})};
+    return ws;
+}
+
 function exportConfigExcel(type) {
     const wb = XLSX.utils.book_new();
-    let rows;
+    const counts = addListesSheet(wb);
+    const maxR = 500;
     if (type === 'personnel') {
-        rows = [['Nom','Prénom','Poste','Lieu','Contrat','Date entrée','Date fin contrat']];
-        config.personnel.forEach(p => {
-            rows.push([p.nom, p.prenom, p.poste||'', p.lieu||'', p.contrat||'', p.date_entree||'', p.date_fin||'']);
-        });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Personnel');
+        const headers = ['Nom','Prénom','Poste','Lieu','Type contrat','Date entrée','Date fin contrat'];
+        const rows = config.personnel.map(p => [p.nom, p.prenom, p.poste||'', p.lieu||'', p.contrat||'', p.date_entree||'', p.date_fin||'']);
+        const ws = styledConfigSheet(headers, rows);
+        ws['!cols'] = [{wch:18},{wch:16},{wch:20},{wch:22},{wch:16},{wch:14},{wch:14}];
+        addValidation(ws, 3, maxR, 'Listes', 0, counts.lieuxCount);
+        addValidation(ws, 4, maxR, 'Listes', 2, counts.contratsCount);
+        XLSX.utils.book_append_sheet(wb, ws, 'Personnel');
         XLSX.writeFile(wb, 'Config_Personnel.xlsx');
     } else if (type === 'lieux') {
-        rows = [['Lieu','Type','Bâtiment','Étage','Zone PPMS']];
-        (config.lieux||[]).forEach(l => {
-            rows.push([l.nom, l.type||'', l.batiment||'', l.etage||'', l.zone_ppms||'Non']);
-        });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Lieux');
+        const headers = ['Lieu','Type','Bâtiment','Étage','Zone PPMS'];
+        const rows = (config.lieux||[]).map(l => [l.nom, l.type||'', l.batiment||'', l.etage||'', l.zone_ppms||'Non']);
+        const ws = styledConfigSheet(headers, rows);
+        ws['!cols'] = [{wch:25},{wch:18},{wch:14},{wch:10},{wch:22}];
+        addValidation(ws, 4, maxR, 'Listes', 1, counts.zonesCount);
+        addValidation(ws, 1, maxR, 'Listes', 3, counts.typesLieuCount);
+        XLSX.utils.book_append_sheet(wb, ws, 'Lieux');
         XLSX.writeFile(wb, 'Config_Lieux.xlsx');
     } else {
-        rows = [['Nom','Prénom','Groupe']];
-        config.enfants.forEach(e => {
-            rows.push([e.nom, e.prenom, e.groupe||'']);
-        });
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Enfants');
+        const headers = ['Nom','Prénom','Lieu'];
+        const rows = config.enfants.map(e => [e.nom, e.prenom, e.groupe||'']);
+        const ws = styledConfigSheet(headers, rows);
+        ws['!cols'] = [{wch:20},{wch:18},{wch:25}];
+        addValidation(ws, 2, maxR, 'Listes', 0, counts.lieuxCount);
+        XLSX.utils.book_append_sheet(wb, ws, 'Enfants');
         XLSX.writeFile(wb, 'Config_Enfants.xlsx');
     }
 }
@@ -1915,22 +1975,37 @@ function exportConfigExcel(type) {
 // ─────────────────────────────────────────────────────────────────────────
 function downloadModeleExcel() {
     const wb = XLSX.utils.book_new();
+    const counts = addListesSheet(wb);
+    const maxR = 500;
     // Feuille Lieux
-    const lieuxRows = [['Lieu','Type','Bâtiment','Étage','Zone PPMS']];
-    (config.lieux||[]).forEach(l => lieuxRows.push([l.nom, l.type||'', l.batiment||'', l.etage||'', l.zone_ppms||'Non']));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(lieuxRows), 'Lieux');
+    const lieuxHeaders = ['Lieu','Type','Bâtiment','Étage','Zone PPMS'];
+    const lieuxData = (config.lieux||[]).map(l => [l.nom, l.type||'', l.batiment||'', l.etage||'', l.zone_ppms||'Non']);
+    const wsL = styledConfigSheet(lieuxHeaders, lieuxData);
+    wsL['!cols'] = [{wch:25},{wch:18},{wch:14},{wch:10},{wch:22}];
+    addValidation(wsL, 4, maxR, 'Listes', 1, counts.zonesCount);
+    addValidation(wsL, 1, maxR, 'Listes', 3, counts.typesLieuCount);
+    XLSX.utils.book_append_sheet(wb, wsL, 'Lieux');
     // Feuille Personnel
-    const persRows = [['Nom','Prénom','Poste','Lieu','Type contrat','Date entrée','Date fin contrat']];
-    config.personnel.forEach(p => persRows.push([p.nom, p.prenom, p.poste||'', p.lieu||'', p.contrat||'', p.date_entree||'', p.date_fin||'']));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(persRows), 'Personnel');
+    const persHeaders = ['Nom','Prénom','Poste','Lieu','Type contrat','Date entrée','Date fin contrat'];
+    const persData = config.personnel.map(p => [p.nom, p.prenom, p.poste||'', p.lieu||'', p.contrat||'', p.date_entree||'', p.date_fin||'']);
+    const wsP = styledConfigSheet(persHeaders, persData);
+    wsP['!cols'] = [{wch:18},{wch:16},{wch:20},{wch:22},{wch:16},{wch:14},{wch:14}];
+    addValidation(wsP, 3, maxR, 'Listes', 0, counts.lieuxCount);
+    addValidation(wsP, 4, maxR, 'Listes', 2, counts.contratsCount);
+    XLSX.utils.book_append_sheet(wb, wsP, 'Personnel');
     // Feuille Enfants
-    const enfRows = [['Nom','Prénom','Lieu']];
-    config.enfants.forEach(e => enfRows.push([e.nom, e.prenom, e.groupe||'']));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(enfRows), 'Enfants');
+    const enfHeaders = ['Nom','Prénom','Lieu'];
+    const enfData = config.enfants.map(e => [e.nom, e.prenom, e.groupe||'']);
+    const wsE = styledConfigSheet(enfHeaders, enfData);
+    wsE['!cols'] = [{wch:20},{wch:18},{wch:25}];
+    addValidation(wsE, 2, maxR, 'Listes', 0, counts.lieuxCount);
+    XLSX.utils.book_append_sheet(wb, wsE, 'Enfants');
     // Feuille Tableau confinement PPMS
-    const regRows = [['Lieu','Bâtiment','Étage','PPMS normal','Intrusion externe','Intrusion interne','Attentat','Accident','Tempête','Inondation']];
-    (config.regles||[]).forEach(r => regRows.push([r.lieu, r.batiment, r.etage, r.ppms_normal, r.intrusion_externe, r.intrusion_interne, r.attentat, r.accident, r.tempete, r.inondation]));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(regRows), 'Tableau confinement PPMS');
+    const regHeaders = ['Lieu','Bâtiment','Étage','PPMS normal','Intrusion externe','Intrusion interne','Attentat','Accident','Tempête','Inondation'];
+    const regData = (config.regles||[]).map(r => [r.lieu, r.batiment, r.etage, r.ppms_normal, r.intrusion_externe, r.intrusion_interne, r.attentat, r.accident, r.tempete, r.inondation]);
+    const wsR = styledConfigSheet(regHeaders, regData);
+    wsR['!cols'] = [{wch:22},{wch:12},{wch:10},{wch:14},{wch:16},{wch:16},{wch:12},{wch:12},{wch:12},{wch:12}];
+    XLSX.utils.book_append_sheet(wb, wsR, 'Tableau confinement PPMS');
     XLSX.writeFile(wb, 'Modele_Referentiel_PPMS.xlsx');
 }
 

@@ -253,44 +253,45 @@ body {
       }
     }
 
-    // Compteur pour savoir combien de frames l'assemblage dure
     assembleFrames = 0;
 
-    // Spawn particules depuis les 4 bords + coins, bien reparties
-    function spawnFromEdge() {
-      const side = Math.floor(Math.random() * 4);
-      const margin = 60; // depasse les bords pour arriver de loin
-      let x, y;
-      if (side === 0) { x = -margin + Math.random() * margin * 0.5; y = Math.random() * h; }        // gauche
-      else if (side === 1) { x = w + Math.random() * margin * 0.5; y = Math.random() * h; }          // droite
-      else if (side === 2) { x = Math.random() * w; y = -margin + Math.random() * margin * 0.5; }    // haut
-      else { x = Math.random() * w; y = h + Math.random() * margin * 0.5; }                          // bas
-      return { x, y };
-    }
+    // Point de fuite = centre du batiment
+    const vanishX = ox + bw / 2;
+    const vanishY = oy + bh / 2;
 
     while (particles.length < targets.length) {
-      const { x: sx, y: sy } = spawnFromEdge();
       particles.push({
-        x: sx, y: sy,
+        x: vanishX + (Math.random() - 0.5) * 20,
+        y: vanishY + (Math.random() - 0.5) * 20,
         tx: 0, ty: 0, size: 8, color: [180, 180, 180],
-        alpha: 0.85 + Math.random() * 0.15,
+        targetSize: CELL,
+        z: 0, // profondeur 0=fond 1=arrive
+        alpha: 0,
         pulse: Math.random() * Math.PI * 2,
         pulseSpeed: 0.005 + Math.random() * 0.01,
-        vx: (Math.random() - 0.5) * 1.2,
-        vy: (Math.random() - 0.5) * 1.2
       });
     }
     particles.length = targets.length;
-    assignTargets();
+    assignTargets(vanishX, vanishY);
   }
 
-  function assignTargets() {
+  function assignTargets(vx, vy) {
     const shuffled = [...targets].sort(() => Math.random() - 0.5);
+    // Centre du panneau comme point de fuite si pas fourni
+    const cx = vx || w / 2, cy = vy || h / 2;
     particles.forEach((p, i) => {
       p.tx = shuffled[i].x;
       p.ty = shuffled[i].y;
       p.color = shuffled[i].color;
-      p.size = shuffled[i].sz;
+      p.targetSize = shuffled[i].sz;
+      // Depart depuis le fond : position = point de fuite + petit decalage aleatoire
+      p.x = cx + (Math.random() - 0.5) * 30;
+      p.y = cy + (Math.random() - 0.5) * 30;
+      p.z = 0;
+      p.alpha = 0;
+      p.size = 1;
+      // Delai aleatoire pour que toutes n'arrivent pas en meme temps
+      p.delay = Math.random() * 120;
     });
   }
 
@@ -344,45 +345,71 @@ body {
     ctx.clearRect(0, 0, w, h);
 
     if (phase === 0) {
+      // Phase assemblage — les particules emergent du fond
       assembleFrames++;
       let allClose = true;
+
       particles.forEach(p => {
+        // Chaque particule attend son delai avant de bouger
+        if (assembleFrames < p.delay) return;
+
+        const elapsed = assembleFrames - p.delay;
+        // z va de 0 (fond) a 1 (arrive) doucement
+        p.z = Math.min(1, elapsed * 0.003);
+
+        // Position interpole entre le fond (centre) et la cible
         const dx = p.tx - p.x, dy = p.ty - p.y;
-        if (Math.abs(dx) > 1.5 || Math.abs(dy) > 1.5) allClose = false;
-        p.x += dx * SPEED;
-        p.y += dy * SPEED;
+        p.x += dx * SPEED * (0.5 + p.z * 1.5);
+        p.y += dy * SPEED * (0.5 + p.z * 1.5);
+
+        // Taille grandit avec la profondeur
+        p.size = Math.max(1, p.targetSize * p.z);
+        // Opacite grandit avec la profondeur
+        p.alpha = p.z * 0.95;
+
+        if (p.z >= 0.98 && Math.abs(dx) < 1.5 && Math.abs(dy) < 1.5) {
+          // Cette particule est arrivee
+        } else {
+          allClose = false;
+        }
       });
 
       // Texte lettre par lettre pendant l'assemblage
-      // Avec SPEED=0.008, assemblage ~500-600 frames
-      const progress = Math.min(1, assembleFrames / 500);
+      const progress = Math.min(1, assembleFrames / 450);
       const chars = Math.floor(progress * TOTAL_CHARS);
       if (chars > 0) drawTypewriter(chars);
 
-      if (allClose) { phase = 1; phaseTimer = 0; }
+      if (allClose && assembleFrames > 150) { phase = 1; phaseTimer = 0; }
+
     } else if (phase === 1) {
+      // Phase hold — batiment assemble, leger pulse
       phaseTimer++;
       particles.forEach(p => {
         p.x += (p.tx - p.x) * 0.1;
         p.y += (p.ty - p.y) * 0.1;
+        p.size = p.targetSize;
+        p.alpha = 0.95;
       });
-      // Texte complet
       drawTypewriter(TOTAL_CHARS);
       if (phaseTimer > 400) { phase = 2; phaseTimer = 0; }
+
     } else {
+      // Phase dispersion — retour vers le fond (retrecissent et disparaissent)
       phaseTimer++;
-      // Dispersion douce — les particules s'eloignent lentement vers les bords
+      const disperseProgress = Math.min(1, phaseTimer / 200);
+      const cx = w / 2, cy = h / 2;
+
       particles.forEach(p => {
-        // Direction vers le bord le plus proche
-        const cx = w / 2, cy = h / 2;
-        const dirX = (p.x - cx) * 0.003 + p.vx * 0.3;
-        const dirY = (p.y - cy) * 0.003 + p.vy * 0.3;
-        p.x += dirX;
-        p.y += dirY;
+        // Retour vers le centre (le fond)
+        p.x += (cx - p.x) * 0.008;
+        p.y += (cy - p.y) * 0.008;
+        // Retrecir et disparaitre
+        p.size = Math.max(0.5, p.targetSize * (1 - disperseProgress));
+        p.alpha = Math.max(0, 0.95 * (1 - disperseProgress));
       });
 
-      // Texte disparait en fondu
-      const fadeOut = Math.max(0, 1 - phaseTimer / 40);
+      // Texte disparait
+      const fadeOut = Math.max(0, 1 - phaseTimer / 50);
       if (fadeOut > 0) {
         ctx.save();
         ctx.globalAlpha = fadeOut;
@@ -390,26 +417,16 @@ body {
         ctx.restore();
       }
 
-      if (phaseTimer > 200) {
+      if (phaseTimer > 220) {
         phase = 0;
         assembleFrames = 0;
-        // Repartir les particules depuis les 4 bords
-        particles.forEach(p => {
-          const side = Math.floor(Math.random() * 4);
-          const m = 80;
-          if (side === 0) { p.x = -m - Math.random() * m; p.y = Math.random() * h; }
-          else if (side === 1) { p.x = w + Math.random() * m; p.y = Math.random() * h; }
-          else if (side === 2) { p.x = Math.random() * w; p.y = -m - Math.random() * m; }
-          else { p.x = Math.random() * w; p.y = h + Math.random() * m; }
-          p.vx = (Math.random() - 0.5) * 1.2;
-          p.vy = (Math.random() - 0.5) * 1.2;
-        });
-        assignTargets();
+        assignTargets(cx, cy);
       }
     }
 
     // Draw particles
     particles.forEach(p => {
+      if (p.alpha < 0.01 || p.size < 0.5) return;
       p.pulse += p.pulseSpeed;
       const [r, g, b] = p.color;
       const a = p.alpha * (0.9 + 0.1 * Math.sin(p.pulse));
@@ -425,7 +442,7 @@ body {
 
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
       ctx.beginPath();
-      ctx.roundRect(p.x - s/2, p.y - s/2, s, s, 2);
+      ctx.roundRect(p.x - s/2, p.y - s/2, s, s, s < 3 ? 0.5 : 2);
       ctx.fill();
     });
 

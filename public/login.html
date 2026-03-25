@@ -210,8 +210,8 @@ body {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   let W, H, w, h, particles = [], targets = [];
-  const CELL = 7, GAP = 2;
-  const SPEED = 0.03;
+  const CELL = 14, GAP = 3;
+  const SPEED = 0.04;
   let phase = 0, phaseTimer = 0;
   // phase 0 = assemble, phase 1 = hold, phase 2 = disperse
 
@@ -250,7 +250,7 @@ body {
     targets = [];
     const rows = building.length, cols = building[0].length;
     const bw = cols * (CELL + GAP), bh = rows * (CELL + GAP);
-    const ox = (w - bw) / 2 + 40, oy = (h - bh) / 2 - 20;
+    const ox = w - bw - 30, oy = 30;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (building[r][c]) {
@@ -335,13 +335,13 @@ body {
 
       // Glow effect when assembled
       if (glow > 0) {
-        ctx.fillStyle = `rgba(100, 170, 240, ${glow * (0.5 + 0.5 * Math.sin(p.pulse))})`;
+        ctx.fillStyle = `rgba(180, 215, 255, ${glow * (0.5 + 0.5 * Math.sin(p.pulse))})`;
         ctx.beginPath();
         ctx.roundRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2, 2);
         ctx.fill();
       }
 
-      ctx.fillStyle = `rgba(130, 190, 240, ${0.3 + a * 0.7})`;
+      ctx.fillStyle = `rgba(180, 215, 255, ${0.15 + a * 0.35})`;
       ctx.beginPath();
       ctx.roundRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size, 1.5);
       ctx.fill();
@@ -355,7 +355,7 @@ body {
           const dy = particles[i].y - particles[j].y;
           const dist = Math.sqrt(dx*dx + dy*dy);
           if (dist < 60) {
-            ctx.strokeStyle = `rgba(120, 180, 230, ${0.04 * (1 - dist/60)})`;
+            ctx.strokeStyle = `rgba(180, 215, 255, ${0.03 * (1 - dist/60)})`;
             ctx.lineWidth = 0.5;
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);

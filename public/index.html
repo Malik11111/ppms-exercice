@@ -10,17 +10,15 @@
 
         body {
             font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #001529 0%, #002766 50%, #003d82 100%);
-            padding: 6px;
+            background: #f0f0f0;
+            padding: 0;
             min-height: 100vh;
         }
 
         .container {
-            max-width: 1800px;
-            margin: 0 auto;
+            max-width: 100%;
+            margin: 0;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
             overflow: hidden;
         }
 
@@ -353,8 +351,8 @@
         <button class="btn" style="background:#28a745;color:white;padding:4px 10px;font-size:12px;" onclick="exportExcel()">Excel</button>
         <button class="btn btn-teal" onclick="checkData()" style="padding:4px 10px;font-size:12px;">Vérifier</button>
         <button class="btn btn-red" onclick="resetAll()" style="padding:4px 10px;font-size:12px;">Reset</button>
+        <input type="text" class="search-input" id="searchInput" placeholder="Rechercher..." oninput="searchPersons(this.value)" style="flex:1;min-width:120px;max-width:300px;padding:4px 10px;font-size:12px;border:1px solid #b0c4de;border-radius:4px;">
         <button class="btn" id="btnAdminPanel" style="background:#8e44ad;color:white;display:none;padding:4px 10px;font-size:12px;" onclick="openAdminPanel()">Admin</button>
-        <div style="flex:1;"></div>
         <div class="header-timer">
             <div class="timer-display" id="timerDisplay" onclick="toggleTimer()">00:00:00</div>
             <button class="timer-btn" onclick="resetTimer()">Reset</button>
@@ -365,13 +363,6 @@
 
     <!-- ══ SCENARIO BANNER ══════════════════════════════════════════════════ -->
     <div id="scenarioBanner"></div>
-
-    <!-- ══ SEARCH ═══════════════════════════════════════════════════════════ -->
-    <div class="search-wrap">
-        <input type="text" class="search-input" id="searchInput"
-               placeholder="🔍 Rechercher une personne..."
-               oninput="searchPersons(this.value)">
-    </div>
 
     <!-- ══ TABS BÂTIMENT A / B ══════════════════════════════════════════════ -->
     <div class="tabs-header">

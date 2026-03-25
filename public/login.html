@@ -165,7 +165,7 @@ body {
 </div>
 
 <script>
-// ── IME Leopold Bellan — batiment pixel art + texte en particules ──
+// ── IME Leopold Bellan — batiment pixel art + texte net ──
 (function() {
   const canvas = document.getElementById('particleCanvas');
   if (!canvas) return;
@@ -173,8 +173,9 @@ body {
   let W, H, w, h, particles = [], targets = [];
   const SPEED = 0.02;
   let phase = 0, phaseTimer = 0;
+  let buildingBottom = 0; // y position du bas du batiment pour placer le texte
 
-  // 1=brique 2=vitre 3=toit 4=feuillage 5=tronc 6=herbe 7=porte 8=buisson vert fonce 9=fleur
+  // 1=brique 2=vitre 3=toit 4=feuillage 5=tronc 6=herbe 7=porte 8=buisson 9=fleur
   const PAL = {
     1: [185, 85, 55],
     2: [100, 170, 220],
@@ -186,12 +187,9 @@ body {
     8: [35, 110, 40],
     9: [220, 80, 80],
   };
-  const TEXT_COLOR = [210, 225, 245];
 
-  // Grand batiment IME — 50 colonnes x 24 lignes
-  // Arbres massifs, buissons, haies, herbe etendue
+  // Batiment IME — 50 colonnes x 23 lignes
   const B = [
-    //0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9
     [0,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,0],
     [4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,4,4,4],
     [4,4,4,4,4,0,0,0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,0,0,0,0,4,4,4,4,4],
@@ -217,41 +215,12 @@ body {
     [0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0],
   ];
 
-  // Texte en particules via offscreen canvas
-  function textToTargets(text, centerX, startY, fontSize) {
-    const offscreen = document.createElement('canvas');
-    const octx = offscreen.getContext('2d');
-    octx.font = `800 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
-    const m = octx.measureText(text);
-    const tw = Math.ceil(m.width) + 4;
-    const th = Math.ceil(fontSize * 1.4);
-    offscreen.width = tw;
-    offscreen.height = th;
-    octx.font = `800 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
-    octx.fillStyle = '#fff';
-    octx.textBaseline = 'top';
-    octx.fillText(text, 2, fontSize * 0.1);
-    const imgData = octx.getImageData(0, 0, tw, th);
-    const pts = [];
-    const sampleStep = Math.max(3, Math.round(fontSize / 8));
-    const sx = centerX - tw / 2;
-    for (let y = 0; y < th; y += sampleStep) {
-      for (let x = 0; x < tw; x += sampleStep) {
-        if (imgData.data[(y * tw + x) * 4 + 3] > 100) {
-          pts.push({ x: sx + x, y: startY + y, color: TEXT_COLOR });
-        }
-      }
-    }
-    return pts;
-  }
-
-  // Dynamic cell size to fill the panel
+  // Taille dynamique des cellules — batiment utilise max 85% largeur, 50% hauteur
   function getCellSize() {
     const cols = B[0].length, rows = B.length;
-    const maxW = w * 0.92;
-    const maxH = h * 0.52;
-    const cs = Math.min(maxW / cols, maxH / rows);
-    return Math.max(6, Math.floor(cs));
+    const maxW = w * 0.85;
+    const maxH = h * 0.50;
+    return Math.max(5, Math.floor(Math.min(maxW / cols, maxH / rows)));
   }
 
   function resize() {
@@ -270,7 +239,9 @@ body {
     const rows = B.length, cols = B[0].length;
     const bw = cols * STEP, bh = rows * STEP;
     const ox = Math.round((w - bw) / 2);
-    const oy = Math.round(h * 0.08);
+    // Centrer verticalement mais laisser de la place en haut pour PPMS et en bas pour le texte
+    const oy = Math.round((h - bh) / 2) + 10;
+    buildingBottom = oy + bh;
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -285,18 +256,6 @@ body {
         }
       }
     }
-
-    // Texte sous le batiment
-    const textY = oy + bh + Math.round(h * 0.06);
-    const fontSize = Math.max(18, Math.min(34, w * 0.05));
-    const cx = w / 2;
-
-    const t1 = textToTargets('Pole Epileptique', cx, textY, fontSize);
-    const t2 = textToTargets('Leopold Bellan', cx, textY + fontSize * 1.35, fontSize);
-    const textSz = Math.max(3, Math.round(fontSize / 7));
-    t1.forEach(p => { p.sz = textSz; });
-    t2.forEach(p => { p.sz = textSz; });
-    targets.push(...t1, ...t2);
 
     while (particles.length < targets.length) {
       particles.push({
@@ -324,6 +283,26 @@ body {
     });
   }
 
+  // Dessine le texte net (pas en particules) sous le batiment
+  function drawText(opacity) {
+    const fontSize = Math.max(16, Math.min(28, w * 0.042));
+    const textY = buildingBottom + 18;
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    ctx.font = `800 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    // Ombre pour lisibilite
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = `rgba(220, 235, 255, ${opacity})`;
+    ctx.fillText('Pole Epileptique', w / 2, textY);
+    ctx.fillText('Leopold Bellan', w / 2, textY + fontSize * 1.4);
+    ctx.restore();
+  }
+
   window.addEventListener('resize', resize);
   resize();
 
@@ -345,7 +324,7 @@ body {
         p.x += (p.tx - p.x) * 0.1;
         p.y += (p.ty - p.y) * 0.1;
       });
-      if (phaseTimer > 380) { phase = 2; phaseTimer = 0; }
+      if (phaseTimer > 400) { phase = 2; phaseTimer = 0; }
     } else {
       phaseTimer++;
       particles.forEach(p => { p.x += p.vx; p.y += p.vy; });
@@ -361,6 +340,7 @@ body {
       }
     }
 
+    // Draw particles
     particles.forEach(p => {
       p.pulse += p.pulseSpeed;
       const [r, g, b] = p.color;
@@ -377,9 +357,18 @@ body {
 
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
       ctx.beginPath();
-      ctx.roundRect(p.x - s/2, p.y - s/2, s, s, s < 5 ? 1 : 2);
+      ctx.roundRect(p.x - s/2, p.y - s/2, s, s, 2);
       ctx.fill();
     });
+
+    // Texte net — apparait en fondu quand le batiment est assemble
+    if (phase === 1) {
+      const fadeIn = Math.min(1, phaseTimer / 40);
+      drawText(fadeIn);
+    } else if (phase === 2) {
+      const fadeOut = Math.max(0, 1 - phaseTimer / 30);
+      drawText(fadeOut);
+    }
 
     requestAnimationFrame(draw);
   }

@@ -165,15 +165,15 @@ body {
 </div>
 
 <script>
-// ── IME Leopold Bellan — batiment pixel art + texte net ──
+// ── IME Leopold Bellan — batiment pixel art + texte lettre par lettre ──
 (function() {
   const canvas = document.getElementById('particleCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   let W, H, w, h, particles = [], targets = [];
   const SPEED = 0.02;
-  let phase = 0, phaseTimer = 0;
-  let buildingBottom = 0; // y position du bas du batiment pour placer le texte
+  let phase = 0, phaseTimer = 0, assembleFrames = 0;
+  let buildingBottom = 0;
 
   // 1=brique 2=vitre 3=toit 4=feuillage 5=tronc 6=herbe 7=porte 8=buisson 9=fleur
   const PAL = {
@@ -187,6 +187,10 @@ body {
     8: [35, 110, 40],
     9: [220, 80, 80],
   };
+
+  const LINE1 = 'Pole Epilepsie Leopold Bellan';
+  const LINE2 = 'de Bry-sur-Marne';
+  const TOTAL_CHARS = LINE1.length + LINE2.length;
 
   // Batiment IME — 50 colonnes x 23 lignes
   const B = [
@@ -215,12 +219,10 @@ body {
     [0,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,0],
   ];
 
-  // Taille dynamique des cellules — batiment utilise max 85% largeur, 50% hauteur
+  // Taille dynamique — batiment remplit 95% largeur, 58% hauteur max
   function getCellSize() {
     const cols = B[0].length, rows = B.length;
-    const maxW = w * 0.85;
-    const maxH = h * 0.50;
-    return Math.max(5, Math.floor(Math.min(maxW / cols, maxH / rows)));
+    return Math.max(5, Math.floor(Math.min(w * 0.95 / cols, h * 0.58 / rows)));
   }
 
   function resize() {
@@ -239,29 +241,25 @@ body {
     const rows = B.length, cols = B[0].length;
     const bw = cols * STEP, bh = rows * STEP;
     const ox = Math.round((w - bw) / 2);
-    // Centrer verticalement mais laisser de la place en haut pour PPMS et en bas pour le texte
-    const oy = Math.round((h - bh) / 2) + 10;
+    const oy = Math.round((h - bh) / 2) + 15;
     buildingBottom = oy + bh;
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const v = B[r][c];
         if (v) {
-          targets.push({
-            x: ox + c * STEP + CELL / 2,
-            y: oy + r * STEP + CELL / 2,
-            color: PAL[v],
-            sz: CELL
-          });
+          targets.push({ x: ox + c * STEP + CELL / 2, y: oy + r * STEP + CELL / 2, color: PAL[v], sz: CELL });
         }
       }
     }
 
+    // Compteur pour savoir combien de frames l'assemblage dure
+    assembleFrames = 0;
+
     while (particles.length < targets.length) {
       particles.push({
         x: Math.random() * w, y: Math.random() * h,
-        tx: 0, ty: 0, size: CELL,
-        color: [180, 180, 180],
+        tx: 0, ty: 0, size: 8, color: [180, 180, 180],
         alpha: 0.85 + Math.random() * 0.15,
         pulse: Math.random() * Math.PI * 2,
         pulseSpeed: 0.005 + Math.random() * 0.01,
@@ -283,23 +281,46 @@ body {
     });
   }
 
-  // Dessine le texte net (pas en particules) sous le batiment
-  function drawText(opacity) {
-    const fontSize = Math.max(16, Math.min(28, w * 0.042));
-    const textY = buildingBottom + 18;
+  // Typewriter : dessine les N premiers caracteres du texte
+  function drawTypewriter(charCount) {
+    const fontSize = Math.max(15, Math.min(26, w * 0.04));
+    const textY = buildingBottom + 14;
     ctx.save();
-    ctx.globalAlpha = opacity;
-    ctx.font = `800 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+    ctx.font = `700 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    // Ombre pour lisibilite
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 8;
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 10;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 2;
-    ctx.fillStyle = `rgba(220, 235, 255, ${opacity})`;
-    ctx.fillText('Pole Epileptique', w / 2, textY);
-    ctx.fillText('Leopold Bellan', w / 2, textY + fontSize * 1.4);
+    ctx.fillStyle = '#dceaff';
+
+    // Ligne 1
+    const c1 = Math.min(charCount, LINE1.length);
+    if (c1 > 0) {
+      const txt1 = LINE1.substring(0, c1);
+      ctx.fillText(txt1, w / 2, textY);
+      // Curseur clignotant
+      if (charCount <= LINE1.length && Math.floor(Date.now() / 400) % 2 === 0) {
+        const tw = ctx.measureText(txt1).width;
+        ctx.fillRect(w / 2 + tw / 2 + 2, textY + 2, 2, fontSize * 0.85);
+      }
+    }
+
+    // Ligne 2
+    const c2 = Math.min(charCount - LINE1.length, LINE2.length);
+    if (c2 > 0) {
+      const txt2 = LINE2.substring(0, c2);
+      ctx.font = `600 ${Math.round(fontSize * 0.8)}px 'Segoe UI', Arial, sans-serif`;
+      ctx.fillStyle = '#a8c8e8';
+      ctx.fillText(txt2, w / 2, textY + fontSize * 1.5);
+      // Curseur
+      if (charCount <= TOTAL_CHARS && Math.floor(Date.now() / 400) % 2 === 0) {
+        const tw2 = ctx.measureText(txt2).width;
+        ctx.fillRect(w / 2 + tw2 / 2 + 2, textY + fontSize * 1.5 + 2, 2, fontSize * 0.7);
+      }
+    }
+
     ctx.restore();
   }
 
@@ -310,6 +331,7 @@ body {
     ctx.clearRect(0, 0, w, h);
 
     if (phase === 0) {
+      assembleFrames++;
       let allClose = true;
       particles.forEach(p => {
         const dx = p.tx - p.x, dy = p.ty - p.y;
@@ -317,6 +339,14 @@ body {
         p.x += dx * SPEED;
         p.y += dy * SPEED;
       });
+
+      // Texte lettre par lettre pendant l'assemblage
+      // Les particules mettent ~200-300 frames a s'assembler
+      // On repartit les lettres sur cette duree
+      const progress = Math.min(1, assembleFrames / 220);
+      const chars = Math.floor(progress * TOTAL_CHARS);
+      if (chars > 0) drawTypewriter(chars);
+
       if (allClose) { phase = 1; phaseTimer = 0; }
     } else if (phase === 1) {
       phaseTimer++;
@@ -324,12 +354,25 @@ body {
         p.x += (p.tx - p.x) * 0.1;
         p.y += (p.ty - p.y) * 0.1;
       });
+      // Texte complet
+      drawTypewriter(TOTAL_CHARS);
       if (phaseTimer > 400) { phase = 2; phaseTimer = 0; }
     } else {
       phaseTimer++;
       particles.forEach(p => { p.x += p.vx; p.y += p.vy; });
+
+      // Texte disparait en fondu
+      const fadeOut = Math.max(0, 1 - phaseTimer / 40);
+      if (fadeOut > 0) {
+        ctx.save();
+        ctx.globalAlpha = fadeOut;
+        drawTypewriter(TOTAL_CHARS);
+        ctx.restore();
+      }
+
       if (phaseTimer > 180) {
         phase = 0;
+        assembleFrames = 0;
         particles.forEach(p => {
           p.x = Math.random() * w;
           p.y = Math.random() * h;
@@ -360,15 +403,6 @@ body {
       ctx.roundRect(p.x - s/2, p.y - s/2, s, s, 2);
       ctx.fill();
     });
-
-    // Texte net — apparait en fondu quand le batiment est assemble
-    if (phase === 1) {
-      const fadeIn = Math.min(1, phaseTimer / 40);
-      drawText(fadeIn);
-    } else if (phase === 2) {
-      const fadeOut = Math.max(0, 1 - phaseTimer / 30);
-      drawText(fadeOut);
-    }
 
     requestAnimationFrame(draw);
   }

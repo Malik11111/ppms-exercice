@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PPMS - Connexion</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0c2d48 0%, #1a5276 50%, #2980b9 100%);
+}
+.login-card {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.login-card h1 {
+  text-align: center;
+  color: #1a5276;
+  margin-bottom: 8px;
+  font-size: 1.6em;
+}
+.login-card .subtitle {
+  text-align: center;
+  color: #666;
+  margin-bottom: 30px;
+  font-size: 0.9em;
+}
+.form-group {
+  margin-bottom: 20px;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  color: #333;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+.form-group input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 1em;
+  transition: border-color 0.2s;
+}
+.form-group input:focus {
+  outline: none;
+  border-color: #2980b9;
+}
+.btn-login {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #e67e22, #e74c3c);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1em;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.2s;
+}
+.btn-login:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(231,76,60,0.4); }
+.btn-login:active { transform: translateY(0); }
+.btn-login:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+.error-msg {
+  background: #fee;
+  color: #c0392b;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  display: none;
+  font-size: 0.9em;
+  border: 1px solid #f5c6cb;
+}
+.error-msg.show { display: block; }
+</style>
+</head>
+<body>
+<div class="login-card">
+  <h1>PPMS - Exercice</h1>
+  <p class="subtitle">Connectez-vous pour acceder a l'application</p>
+
+  <div id="errorMsg" class="error-msg"></div>
+
+  <form id="loginForm" onsubmit="handleLogin(event)">
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="votre@email.fr" required autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label for="password">Mot de passe</label>
+      <input type="password" id="password" placeholder="Votre mot de passe" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="btn-login" id="btnSubmit">Se connecter</button>
+  </form>
+</div>
+
+<script>
+const API_BASE = (location.hostname === 'localhost' || location.protocol === 'file:') ? 'http://localhost:3000' : '';
+
+// If already logged in, redirect
+const existingToken = localStorage.getItem('ppms_token');
+if (existingToken) {
+  fetch(API_BASE + '/api/auth/me', { headers: { 'Authorization': 'Bearer ' + existingToken } })
+    .then(r => { if (r.ok) window.location.href = '/'; })
+    .catch(() => {});
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('btnSubmit');
+  const errDiv = document.getElementById('errorMsg');
+  errDiv.className = 'error-msg';
+
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+
+  btn.disabled = true;
+  btn.textContent = 'Connexion...';
+
+  try {
+    const res = await fetch(API_BASE + '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      errDiv.textContent = data.error || 'Erreur de connexion';
+      errDiv.className = 'error-msg show';
+      return;
+    }
+
+    localStorage.setItem('ppms_token', data.token);
+    localStorage.setItem('ppms_user', JSON.stringify(data.user));
+    window.location.href = '/';
+  } catch (err) {
+    errDiv.textContent = 'Impossible de contacter le serveur';
+    errDiv.className = 'error-msg show';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Se connecter';
+  }
+}
+</script>
+</body>
+</html>

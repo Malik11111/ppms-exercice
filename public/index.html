@@ -357,6 +357,7 @@
         <div class="header-timer">
             <div class="timer-display" id="timerDisplay" onclick="toggleTimer()">00:00:00</div>
             <button class="timer-btn" onclick="resetTimer()">🔄 Reset</button>
+            <button class="timer-btn" onclick="logout()" style="background:#e74c3c;margin-left:8px;" title="Déconnexion">🚪 Déconnexion</button>
         </div>
     </div>
 
@@ -370,6 +371,7 @@
 
         <button class="btn btn-teal" onclick="checkData()">🔍 Vérifier Données</button>
         <button class="btn btn-red" onclick="resetAll()">🔄 Réinitialiser</button>
+        <button class="btn" id="btnAdminPanel" style="background:#8e44ad;color:white;display:none;" onclick="openAdminPanel()">👥 Admin</button>
     </div>
 
     <!-- ══ SCENARIO BANNER ══════════════════════════════════════════════════ -->
@@ -807,13 +809,26 @@ let currentTab = 'A';
 const API_BASE = (location.hostname === 'localhost' || location.protocol === 'file:')
     ? 'http://localhost:3000' : '';
 
+function authHeaders(extra = {}) {
+    const token = localStorage.getItem('ppms_token');
+    return { ...extra, ...(token ? { 'Authorization': 'Bearer ' + token } : {}) };
+}
+function logout() {
+    localStorage.removeItem('ppms_token');
+    localStorage.removeItem('ppms_user');
+    window.location.href = '/login.html';
+}
+function getCurrentUser() {
+    try { return JSON.parse(localStorage.getItem('ppms_user')); } catch { return null; }
+}
+
 let _saveConfigTimer = null;
 function saveConfig() {
     localStorage.setItem(KEY_CONFIG, JSON.stringify(config));
     clearTimeout(_saveConfigTimer);
     _saveConfigTimer = setTimeout(() => {
         fetch(API_BASE + '/api/config', {
-            method: 'PUT', headers: {'Content-Type':'application/json'},
+            method: 'PUT', headers: authHeaders({'Content-Type':'application/json'}),
             body: JSON.stringify(config)
         }).catch(e => console.warn('Sync config error:', e));
     }, 300);
@@ -826,7 +841,7 @@ function saveExercise() {
     clearTimeout(_saveExerciseTimer);
     _saveExerciseTimer = setTimeout(() => {
         fetch(API_BASE + '/api/exercise', {
-            method: 'PUT', headers: {'Content-Type':'application/json'},
+            method: 'PUT', headers: authHeaders({'Content-Type':'application/json'}),
             body: JSON.stringify(exercise)
         }).catch(e => console.warn('Sync exercise error:', e));
     }, 300);
@@ -837,8 +852,8 @@ async function loadAll() {
     let loadedFromServer = false;
     try {
         const [cfgRes, exRes] = await Promise.all([
-            fetch(API_BASE + '/api/config').then(r => r.json()).catch(() => null),
-            fetch(API_BASE + '/api/exercise').then(r => r.json()).catch(() => null)
+            fetch(API_BASE + '/api/config', { headers: authHeaders() }).then(r => r.json()).catch(() => null),
+            fetch(API_BASE + '/api/exercise', { headers: authHeaders() }).then(r => r.json()).catch(() => null)
         ]);
         if (cfgRes && cfgRes.zones && cfgRes.zones.length > 0) {
             config = cfgRes;
@@ -902,11 +917,11 @@ function initWebSocket() {
         ws.onmessage = (evt) => {
             const msg = JSON.parse(evt.data);
             if (msg.type === 'config_updated') {
-                fetch(API_BASE + '/api/config').then(r => r.json()).then(data => {
+                fetch(API_BASE + '/api/config', { headers: authHeaders() }).then(r => r.json()).then(data => {
                     if (data && data.zones) { config = data; renderAllZones(); }
                 }).catch(() => {});
             } else if (msg.type === 'exercise_updated' || msg.type === 'person_updated') {
-                fetch(API_BASE + '/api/exercise').then(r => r.json()).then(data => {
+                fetch(API_BASE + '/api/exercise', { headers: authHeaders() }).then(r => r.json()).then(data => {
                     if (data && (data.personnel || data.enfants)) {
                         exercise.personnel  = data.personnel  || [];
                         exercise.enfants    = data.enfants    || [];
@@ -2380,6 +2395,20 @@ function exportExcel() {
 // INIT
 // ─────────────────────────────────────────────────────────────────────────
 async function init() {
+    // Auth gate — redirect to login if no token
+    const token = localStorage.getItem('ppms_token');
+    if (!token) { window.location.href = '/login.html'; return; }
+    try {
+        const me = await fetch(API_BASE + '/api/auth/me', { headers: authHeaders() });
+        if (!me.ok) { logout(); return; }
+    } catch { /* offline/dev mode, continue */ }
+
+    // Show admin button if admin
+    const user = getCurrentUser();
+    if (user && user.role === 'admin') {
+        document.getElementById('btnAdminPanel').style.display = '';
+    }
+
     await loadAll();
     updateScenarioBanner();
     renderAllZones();
@@ -2393,7 +2422,73 @@ async function init() {
     });
 }
 
+// ── Admin Panel ──
+async function openAdminPanel() {
+    document.getElementById('adminModal').style.display = 'flex';
+    await loadUsers();
+}
+function closeAdminPanel() {
+    document.getElementById('adminModal').style.display = 'none';
+}
+async function loadUsers() {
+    const list = document.getElementById('adminUserList');
+    list.innerHTML = '<p>Chargement...</p>';
+    try {
+        const res = await fetch(API_BASE + '/api/auth/users', { headers: authHeaders() });
+        if (!res.ok) { list.innerHTML = '<p style="color:red;">Erreur</p>'; return; }
+        const users = await res.json();
+        const me = getCurrentUser();
+        list.innerHTML = users.map(u => `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f8f9fa;border-radius:8px;margin-bottom:6px;">
+                <div><strong>${u.nom} ${u.prenom}</strong> — ${u.email} <span style="background:${u.role==='admin'?'#8e44ad':'#2980b9'};color:white;padding:2px 8px;border-radius:10px;font-size:0.8em;">${u.role}</span></div>
+                ${u.id !== me.id ? `<button onclick="deleteUser(${u.id})" style="background:#e74c3c;color:white;border:none;border-radius:6px;padding:4px 10px;cursor:pointer;">Supprimer</button>` : ''}
+            </div>
+        `).join('');
+    } catch { list.innerHTML = '<p style="color:red;">Erreur réseau</p>'; }
+}
+async function createUser(e) {
+    e.preventDefault();
+    const f = e.target;
+    const body = { email: f.email.value, password: f.password.value, nom: f.nom.value, prenom: f.prenom.value, role: f.role.value };
+    try {
+        const res = await fetch(API_BASE + '/api/auth/users', { method: 'POST', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) { alert(data.error); return; }
+        f.reset();
+        await loadUsers();
+    } catch { alert('Erreur réseau'); }
+}
+async function deleteUser(id) {
+    if (!confirm('Supprimer cet utilisateur ?')) return;
+    try {
+        await fetch(API_BASE + '/api/auth/users/' + id, { method: 'DELETE', headers: authHeaders() });
+        await loadUsers();
+    } catch { alert('Erreur réseau'); }
+}
+
 init();
 </script>
+
+<!-- Admin Modal -->
+<div id="adminModal" class="modal-overlay" style="display:none;">
+  <div style="background:white;border-radius:16px;padding:30px;width:600px;max-width:95vw;max-height:90vh;overflow-y:auto;position:relative;">
+    <button onclick="closeAdminPanel()" style="position:absolute;top:12px;right:16px;background:none;border:none;font-size:1.5em;cursor:pointer;">✕</button>
+    <h2 style="color:#8e44ad;margin-bottom:20px;">👥 Gestion des utilisateurs</h2>
+    <div id="adminUserList" style="margin-bottom:24px;"></div>
+    <h3 style="color:#333;margin-bottom:12px;">Ajouter un utilisateur</h3>
+    <form onsubmit="createUser(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <input name="nom" placeholder="Nom" required style="padding:8px;border:2px solid #ddd;border-radius:8px;">
+      <input name="prenom" placeholder="Prénom" required style="padding:8px;border:2px solid #ddd;border-radius:8px;">
+      <input name="email" type="email" placeholder="Email" required style="padding:8px;border:2px solid #ddd;border-radius:8px;">
+      <input name="password" type="password" placeholder="Mot de passe" required minlength="4" style="padding:8px;border:2px solid #ddd;border-radius:8px;">
+      <select name="role" style="padding:8px;border:2px solid #ddd;border-radius:8px;">
+        <option value="user">Utilisateur</option>
+        <option value="admin">Administrateur</option>
+      </select>
+      <button type="submit" style="padding:8px;background:#8e44ad;color:white;border:none;border-radius:8px;cursor:pointer;font-weight:bold;">Créer</button>
+    </form>
+  </div>
+</div>
+
 </body>
 </html>

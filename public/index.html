@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PPMS</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -2267,106 +2267,185 @@ function exportExcel() {
 
     const pct = (n) => total > 0 ? `${((n/total)*100).toFixed(1)}%` : '0.0%';
 
+    // ── Styles réutilisables ──
+    const border = {top:{style:'thin',color:{rgb:'CCCCCC'}},bottom:{style:'thin',color:{rgb:'CCCCCC'}},left:{style:'thin',color:{rgb:'CCCCCC'}},right:{style:'thin',color:{rgb:'CCCCCC'}}};
+    const titleStyle = {font:{bold:true,sz:16,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1A5276'}},alignment:{horizontal:'center',vertical:'center'},border:border};
+    const sectionStyle = {font:{bold:true,sz:12,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'2980B9'}},alignment:{vertical:'center'},border:border};
+    const headerStyle = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'34495E'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:border};
+    const labelStyle = {font:{bold:true,sz:10,color:{rgb:'1A5276'}},fill:{fgColor:{rgb:'EBF5FB'}},border:border};
+    const valueStyle = {font:{sz:10},fill:{fgColor:{rgb:'FDFEFE'}},border:border,alignment:{horizontal:'left'}};
+    const statusColors = {
+        'present':  {font:{bold:true,sz:10,color:{rgb:'155724'}},fill:{fgColor:{rgb:'D4EDDA'}},border:border,alignment:{horizontal:'center'}},
+        'absent':   {font:{bold:true,sz:10,color:{rgb:'721C24'}},fill:{fgColor:{rgb:'F8D7DA'}},border:border,alignment:{horizontal:'center'}},
+        'autre-zone':{font:{bold:true,sz:10,color:{rgb:'856404'}},fill:{fgColor:{rgb:'FFF3CD'}},border:border,alignment:{horizontal:'center'}},
+        'sortie-exterieure':{font:{bold:true,sz:10,color:{rgb:'0C5460'}},fill:{fgColor:{rgb:'D1ECF1'}},border:border,alignment:{horizontal:'center'}},
+        'pending':  {font:{bold:true,sz:10,color:{rgb:'6C757D'}},fill:{fgColor:{rgb:'E9ECEF'}},border:border,alignment:{horizontal:'center'}}
+    };
+    const statLabels = {'present':'Présent','absent':'Absent','autre-zone':'Autre zone','sortie-exterieure':'Sortie ext.','pending':'À vérifier'};
+    const cellVal = (v, s) => ({v:v, t:'s', s:s});
+    const cellNum = (v, s) => ({v:v, t:'n', s:s});
+
+    function applyHeaderRow(ws, row, cols, style) {
+        cols.forEach((c, i) => {
+            const ref = XLSX.utils.encode_cell({r:row, c:i});
+            ws[ref] = cellVal(c, style);
+        });
+    }
+    function setRange(ws, rows, cols) {
+        ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows-1,c:cols-1}});
+    }
+
     // ── Feuille 1 : Page de garde ──────────────────────────────────────
-    const pageGarde = [
-        ['🏥 EXERCICE PPMS - PLAN PARTICULIER DE MISE EN SÛRETÉ'],[''],
-        ['═══════════════════════════════════════════════════════'],
-        ['📍 ÉTABLISSEMENT'],
-        ['═══════════════════════════════════════════════════════'],
-        ['Nom:',  'Établissement'],
-        [''],
-        ['═══════════════════════════════════════════════════════'],
-        ['🚨 CONTEXTE DE L\'EXERCICE PPMS'],
-        ['═══════════════════════════════════════════════════════'],
-        ['Date de l\'exercice:', now],
-        ['Type de scénario:', exercise.scenario.type || ''],
-        [''],
-        ['SCÉNARIO:'],
-    ];
-    (exercise.scenario.description || '').split('\n').forEach(l => pageGarde.push([l]));
-    pageGarde.push([''], ['OBJECTIFS DE L\'EXERCICE:']);
-    (exercise.scenario.objectifs || '').split('\n').forEach(l => pageGarde.push([l]));
-    const ws1 = XLSX.utils.aoa_to_sheet(pageGarde);
-    ws1['!cols'] = [{wch:25},{wch:70}];
+    const ws1 = {};
+    let r1 = 0;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('EXERCICE PPMS - PLAN PARTICULIER DE MISE EN SURETE', titleStyle);
+    ws1['!merges'] = [{s:{r:0,c:0},e:{r:0,c:1}}];
+    r1 += 2;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('ETABLISSEMENT', sectionStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', sectionStyle);
+    r1++;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Nom:', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('Etablissement', valueStyle);
+    r1 += 2;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('CONTEXTE DE L\'EXERCICE PPMS', sectionStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', sectionStyle);
+    r1++;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Date de l\'exercice:', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(now, valueStyle);
+    r1++;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Type de scénario:', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(exercise.scenario.type || '', valueStyle);
+    r1 += 2;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('SCENARIO', sectionStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', sectionStyle);
+    r1++;
+    (exercise.scenario.description || 'Aucun scénario défini').split('\n').forEach(l => {
+        ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal(l, valueStyle);
+        ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', valueStyle);
+        r1++;
+    });
+    r1++;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('OBJECTIFS DE L\'EXERCICE', sectionStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', sectionStyle);
+    r1++;
+    (exercise.scenario.objectifs || '').split('\n').forEach(l => {
+        ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal(l, valueStyle);
+        ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', valueStyle);
+        r1++;
+    });
+    setRange(ws1, r1, 2);
+    ws1['!cols'] = [{wch:30},{wch:70}];
+    ws1['!rows'] = [{hpt:30}];
     XLSX.utils.book_append_sheet(wb, ws1, 'Page de garde');
 
     // ── Feuille 2 : Statistiques ───────────────────────────────────────
-    const stats = [
-        ['📊 RÉCAPITULATIF EXERCICE PPMS'],
-        ['Date exercice:', now],
-        ['═══════════════════════════════════'],
-        ['Indicateur','Nombre','Pourcentage'],
-        ['Total personnes', total, '100%'],
-        ['✅ Présents localisés (total)', localises, pct(localises)],
-        ['  └─ Dans leur zone normale', presents, pct(presents)],
-        ['  └─ 🔄 Dans une autre zone', autreZone, pct(autreZone)],
-        ['  └─ 🚌 En sortie extérieure', sortieExt, pct(sortieExt)],
-        ['❌ Absents (non localisés)', absents, pct(absents)],
-        ['⏳ À vérifier', pending, pct(pending)],
-        ['═══════════════════════════════════'],
-        ['Personnel total', allP.length, ''],
-        ['Enfants total', allE.length, ''],
+    const ws2 = {};
+    const greenNum = {font:{bold:true,sz:11,color:{rgb:'155724'}},fill:{fgColor:{rgb:'D4EDDA'}},border:border,alignment:{horizontal:'center'}};
+    const redNum = {font:{bold:true,sz:11,color:{rgb:'721C24'}},fill:{fgColor:{rgb:'F8D7DA'}},border:border,alignment:{horizontal:'center'}};
+    const yellowNum = {font:{bold:true,sz:11,color:{rgb:'856404'}},fill:{fgColor:{rgb:'FFF3CD'}},border:border,alignment:{horizontal:'center'}};
+    const blueNum = {font:{bold:true,sz:11,color:{rgb:'0C5460'}},fill:{fgColor:{rgb:'D1ECF1'}},border:border,alignment:{horizontal:'center'}};
+    const grayNum = {font:{bold:true,sz:11,color:{rgb:'6C757D'}},fill:{fgColor:{rgb:'E9ECEF'}},border:border,alignment:{horizontal:'center'}};
+    const totalStyle = {font:{bold:true,sz:11,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1A5276'}},border:border,alignment:{horizontal:'center'}};
+
+    ws2[XLSX.utils.encode_cell({r:0,c:0})] = cellVal('RECAPITULATIF EXERCICE PPMS', titleStyle);
+    ws2['!merges'] = [{s:{r:0,c:0},e:{r:0,c:2}}];
+    ws2[XLSX.utils.encode_cell({r:1,c:0})] = cellVal('Date:', labelStyle);
+    ws2[XLSX.utils.encode_cell({r:1,c:1})] = cellVal(now, {...valueStyle, alignment:{horizontal:'left'}});
+    ws2[XLSX.utils.encode_cell({r:1,c:2})] = cellVal('', valueStyle);
+
+    applyHeaderRow(ws2, 3, ['Indicateur','Nombre','Pourcentage'], headerStyle);
+
+    const statRows = [
+        ['Total personnes', total, '100%', totalStyle],
+        ['Présents localisés (total)', localises, pct(localises), greenNum],
+        ['  Dans leur zone normale', presents, pct(presents), greenNum],
+        ['  Dans une autre zone', autreZone, pct(autreZone), yellowNum],
+        ['  En sortie extérieure', sortieExt, pct(sortieExt), blueNum],
+        ['Absents (non localisés)', absents, pct(absents), redNum],
+        ['A vérifier', pending, pct(pending), grayNum],
     ];
-    const ws2 = XLSX.utils.aoa_to_sheet(stats);
-    ws2['!cols'] = [{wch:35},{wch:12},{wch:14}];
+    statRows.forEach((row, i) => {
+        const r = 4 + i;
+        ws2[XLSX.utils.encode_cell({r:r,c:0})] = cellVal(row[0], {...labelStyle, font:{...labelStyle.font, bold: i===0}});
+        ws2[XLSX.utils.encode_cell({r:r,c:1})] = cellNum(row[1], row[3]);
+        ws2[XLSX.utils.encode_cell({r:r,c:2})] = cellVal(row[2], row[3]);
+    });
+    const r2sep = 4 + statRows.length + 1;
+    ws2[XLSX.utils.encode_cell({r:r2sep,c:0})] = cellVal('Personnel total', labelStyle);
+    ws2[XLSX.utils.encode_cell({r:r2sep,c:1})] = cellNum(allP.length, {...valueStyle, alignment:{horizontal:'center'}});
+    ws2[XLSX.utils.encode_cell({r:r2sep,c:2})] = cellVal('', valueStyle);
+    ws2[XLSX.utils.encode_cell({r:r2sep+1,c:0})] = cellVal('Enfants total', labelStyle);
+    ws2[XLSX.utils.encode_cell({r:r2sep+1,c:1})] = cellNum(allE.length, {...valueStyle, alignment:{horizontal:'center'}});
+    ws2[XLSX.utils.encode_cell({r:r2sep+1,c:2})] = cellVal('', valueStyle);
+    setRange(ws2, r2sep+2, 3);
+    ws2['!cols'] = [{wch:35},{wch:14},{wch:14}];
+    ws2['!rows'] = [{hpt:30}];
     XLSX.utils.book_append_sheet(wb, ws2, 'Statistiques');
 
     // ── Feuille 3 : Détail par zone ────────────────────────────────────
-    const zoneRows = [['Zone','Bâtiment','Étage','Type Personne','Nom','Prénom','Statut','Lieu d\'origine','Zone destination','Téléphone zone']];
+    const ws3 = {};
+    const z3cols = ['Zone','Bât.','Étage','Type','Nom','Prénom','Statut','Lieu origine','Zone dest.','Tél. zone'];
+    applyHeaderRow(ws3, 0, z3cols, headerStyle);
+    let r3 = 1;
+    const zoneHeaderStyle = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'2471A3'}},border:border};
     config.zones.filter(z => z.slug !== 'sortie-exterieure').forEach(zone => {
-        const tel = exercise.zonePhones[zone.slug] || '';
+        const tel = exercise.zonePhones ? (exercise.zonePhones[zone.slug] || '') : '';
         const persons = [
             ...exercise.personnel.filter(p => p.zone_slug === zone.slug).map(p => ({...p, tp:'Personnel'})),
             ...exercise.enfants.filter(p => p.zone_slug === zone.slug).map(p => ({...p, tp:'Enfant'})),
         ];
         if (persons.length === 0) {
-            zoneRows.push([zone.nom, zone.batiment, zone.etage||'RDC', '—','—','—','—','—','—', tel]);
+            [zone.nom, zone.batiment, zone.etage||'RDC', '—','—','—','—','—','—', tel].forEach((v, i) => {
+                ws3[XLSX.utils.encode_cell({r:r3,c:i})] = cellVal(v, zoneHeaderStyle);
+            });
+            r3++;
         } else {
             persons.forEach((p, i) => {
                 const destZ = p.status === 'autre-zone' && p.autre_zone_slug
-                    ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom
-                    : '';
-                const statLabels = { 'present':'Présent','absent':'Absent','autre-zone':'Autre zone','sortie-exterieure':'Sortie ext.','pending':'À vérifier' };
-                zoneRows.push([
-                    i === 0 ? zone.nom : '',
-                    i === 0 ? zone.batiment : '',
-                    i === 0 ? (zone.etage||'RDC') : '',
-                    p.tp, p.nom, p.prenom,
-                    statLabels[p.status] || p.status,
-                    p.lieu_origine || '',
-                    destZ,
-                    i === 0 ? tel : ''
-                ]);
+                    ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom : '';
+                const rowStyle = i === 0 ? zoneHeaderStyle : {font:{sz:10},fill:{fgColor:{rgb: i%2===0 ? 'F8F9FA' : 'FFFFFF'}},border:border};
+                const vals = [
+                    i===0?zone.nom:'', i===0?zone.batiment:'', i===0?(zone.etage||'RDC'):'',
+                    p.tp, p.nom, p.prenom, statLabels[p.status]||p.status, p.lieu_origine||'', destZ, i===0?tel:''
+                ];
+                vals.forEach((v, ci) => {
+                    const st = ci === 6 ? (statusColors[p.status] || rowStyle) : (i===0 ? zoneHeaderStyle : rowStyle);
+                    ws3[XLSX.utils.encode_cell({r:r3,c:ci})] = cellVal(v, st);
+                });
+                r3++;
             });
         }
     });
-    const ws3 = XLSX.utils.aoa_to_sheet(zoneRows);
-    ws3['!cols'] = [{wch:22},{wch:14},{wch:12},{wch:14},{wch:18},{wch:16},{wch:14},{wch:22},{wch:22},{wch:20}];
+    setRange(ws3, r3, 10);
+    ws3['!cols'] = [{wch:20},{wch:10},{wch:8},{wch:10},{wch:18},{wch:16},{wch:14},{wch:18},{wch:18},{wch:16}];
     XLSX.utils.book_append_sheet(wb, ws3, 'Détail par zone');
 
-    // ── Feuille 4 : Personnel complet ──────────────────────────────────
-    const persRows = [['Nom','Prénom','Zone assignée','Statut','Zone destination','Lieu d\'origine']];
-    exercise.personnel.forEach(p => {
-        const z = config.zones.find(z=>z.slug===p.zone_slug);
-        const destZ = p.status==='autre-zone'&&p.autre_zone_slug ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom : '';
-        const statLabels = { 'present':'✅ Présent','absent':'❌ Absent','autre-zone':'🔄 Autre zone','sortie-exterieure':'🚌 Sortie ext.','pending':'⏳ À vérifier' };
-        persRows.push([p.nom,p.prenom,z?z.nom:'',statLabels[p.status]||p.status,destZ,p.lieu_origine||'']);
-    });
-    const ws4 = XLSX.utils.aoa_to_sheet(persRows);
-    ws4['!cols'] = [{wch:20},{wch:18},{wch:22},{wch:18},{wch:22},{wch:22}];
-    XLSX.utils.book_append_sheet(wb, ws4, 'Personnel');
+    // ── Helper pour feuilles Personnel / Enfants ──
+    function makePersonSheet(title, persons) {
+        const ws = {};
+        const cols = ['Nom','Prénom','Zone assignée','Statut','Zone destination','Lieu d\'origine'];
+        applyHeaderRow(ws, 0, cols, headerStyle);
+        persons.forEach((p, i) => {
+            const r = i + 1;
+            const z = config.zones.find(z=>z.slug===p.zone_slug);
+            const destZ = p.status==='autre-zone'&&p.autre_zone_slug ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom : '';
+            const rowBg = i%2===0 ? 'F8F9FA' : 'FFFFFF';
+            const rowStyle = {font:{sz:10},fill:{fgColor:{rgb:rowBg}},border:border};
+            ws[XLSX.utils.encode_cell({r:r,c:0})] = cellVal(p.nom, {...rowStyle, font:{bold:true,sz:10}});
+            ws[XLSX.utils.encode_cell({r:r,c:1})] = cellVal(p.prenom, rowStyle);
+            ws[XLSX.utils.encode_cell({r:r,c:2})] = cellVal(z?z.nom:'', rowStyle);
+            ws[XLSX.utils.encode_cell({r:r,c:3})] = cellVal(statLabels[p.status]||p.status, statusColors[p.status]||rowStyle);
+            ws[XLSX.utils.encode_cell({r:r,c:4})] = cellVal(destZ, rowStyle);
+            ws[XLSX.utils.encode_cell({r:r,c:5})] = cellVal(p.lieu_origine||'', rowStyle);
+        });
+        setRange(ws, persons.length+1, 6);
+        ws['!cols'] = [{wch:20},{wch:18},{wch:22},{wch:16},{wch:22},{wch:22}];
+        ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:persons.length,c:5}})};
+        XLSX.utils.book_append_sheet(wb, ws, title);
+    }
 
-    // ── Feuille 5 : Enfants complet ────────────────────────────────────
-    const enfRows = [['Nom','Prénom','Zone assignée','Statut','Zone destination','Lieu d\'origine']];
-    exercise.enfants.forEach(p => {
-        const z = config.zones.find(z=>z.slug===p.zone_slug);
-        const destZ = p.status==='autre-zone'&&p.autre_zone_slug ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom : '';
-        const statLabels = { 'present':'✅ Présent','absent':'❌ Absent','autre-zone':'🔄 Autre zone','sortie-exterieure':'🚌 Sortie ext.','pending':'⏳ À vérifier' };
-        enfRows.push([p.nom,p.prenom,z?z.nom:'',statLabels[p.status]||p.status,destZ,p.lieu_origine||'']);
-    });
-    const ws5 = XLSX.utils.aoa_to_sheet(enfRows);
-    ws5['!cols'] = [{wch:20},{wch:18},{wch:22},{wch:18},{wch:22},{wch:22}];
-    XLSX.utils.book_append_sheet(wb, ws5, 'Enfants');
+    makePersonSheet('Personnel', exercise.personnel);
+    makePersonSheet('Enfants', exercise.enfants);
 
     const dateFile = new Date().toISOString().slice(0,16).replace('T','_').replace(/:/g,'-');
     XLSX.writeFile(wb, `Rapport_PPMS_${dateFile}.xlsx`);

@@ -775,10 +775,10 @@ let config = {
     enfants:        [],   // [{id, nom, prenom, groupe}]
     lieux:          [],   // [{id, nom, type, batiment, etage, zone_ppms}]
     regles:         [],   // [{id, lieu, batiment, etage, ppms_normal, intrusion_externe, ...}]
-    nomEtab:        '',
-    adresseEtab:    '',
-    telEtab:        '',
-    descriptionEtab: '',
+    nomEtab:        'Pôle Épilepsie Léopold Bellan de Bry-sur-Marne',
+    adresseEtab:    '5 rue du 26 août 1944, 94360 BRY-SUR-MARNE',
+    telEtab:        '01 48 81 00 39',
+    descriptionEtab: 'Le Pôle Épilepsie Léopold Bellan de Bry-sur-Marne accueille de jeunes épileptiques âgés de 6 à 20 ans présentant des troubles de la personnalité, sans atteinte motrice entravant l\'autonomie de déplacement et sans déficience intellectuelle profonde. Les enfants doivent avoir acquis le langage et la propreté.\n\nCet Institut Médico-Educatif offre 54 places en internat et 20 places en semi-internat. C\'est l\'établissement de référence pour cette tranche d\'âge en Île-de-France. Le semi-internat s\'adresse aux enfants et adolescents des communes limitrophes.\n\nLe Pôle Épilepsie Léopold Bellan de Bry-sur-Marne, composé de cinq ateliers, propose un enseignement technique dans les domaines préprofessionnels :\n- Horticulture : entretien des espaces verts dans l\'IME et en chantiers extérieurs, floriculture en serre\n- Restauration : préparation de plats et de repas, initiation au service en salle, hygiène en cuisine\n- Hygiène et Entretien des Locaux : entretien du linge et des locaux au sein de l\'IME\n- Ateliers Polyvalents : travail du bois et création d\'objets, peinture, mécanique vélo, petits travaux d\'entretien dans l\'IME, archivage, services à la personne\n- Vie Pratique et Sociale : suivi de l\'actualité, enrichissement culturel, découverte des institutions, préparation aux démarches administratives, rédaction de lettres de motivation et CV, apprentissage de la citoyenneté\n\nUne unité d\'enseignement de l\'Éducation Nationale, composée de quatre enseignants spécialisés, est située au sein de l\'établissement.',
 };
 
 let exercise = {
@@ -901,6 +901,14 @@ async function loadAll() {
     }
     if (!config.lieux || config.lieux.length === 0) {
         config.lieux = DEFAULT_CONFIG.lieux; saveConfig();
+    }
+    // Infos établissement par défaut si absentes
+    if (!config.nomEtab) {
+        config.nomEtab         = config.nomEtab         || 'Pôle Épilepsie Léopold Bellan de Bry-sur-Marne';
+        config.adresseEtab     = config.adresseEtab     || '5 rue du 26 août 1944, 94360 BRY-SUR-MARNE';
+        config.telEtab         = config.telEtab         || '01 48 81 00 39';
+        config.descriptionEtab = config.descriptionEtab || 'Le Pôle Épilepsie Léopold Bellan de Bry-sur-Marne accueille de jeunes épileptiques âgés de 6 à 20 ans présentant des troubles de la personnalité, sans atteinte motrice entravant l\'autonomie de déplacement et sans déficience intellectuelle profonde. Les enfants doivent avoir acquis le langage et la propreté.\n\nCet Institut Médico-Educatif offre 54 places en internat et 20 places en semi-internat. C\'est l\'établissement de référence pour cette tranche d\'âge en Île-de-France.\n\nLe Pôle propose un enseignement technique : Horticulture, Restauration, Hygiène et Entretien des Locaux, Ateliers Polyvalents, Vie Pratique et Sociale.\n\nUne unité d\'enseignement de l\'Éducation Nationale, composée de quatre enseignants spécialisés, est située au sein de l\'établissement.';
+        saveConfig();
     }
 
     // 4. Fallback exercice localStorage

@@ -2450,54 +2450,88 @@ function exportExcel() {
 
     const pct = (n) => total > 0 ? `${((n/total)*100).toFixed(1)}%` : '0.0%';
 
-    // ── Styles réutilisables ──
-    const border = {top:{style:'thin',color:{rgb:'CCCCCC'}},bottom:{style:'thin',color:{rgb:'CCCCCC'}},left:{style:'thin',color:{rgb:'CCCCCC'}},right:{style:'thin',color:{rgb:'CCCCCC'}}};
-    const titleStyle = {font:{bold:true,sz:16,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1A5276'}},alignment:{horizontal:'center',vertical:'center'},border:border};
-    const sectionStyle = {font:{bold:true,sz:12,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'2980B9'}},alignment:{vertical:'center'},border:border};
-    const headerStyle = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'34495E'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:border};
-    const labelStyle = {font:{bold:true,sz:10,color:{rgb:'1A5276'}},fill:{fgColor:{rgb:'EBF5FB'}},border:border};
-    const valueStyle = {font:{sz:10},fill:{fgColor:{rgb:'FDFEFE'}},border:border,alignment:{horizontal:'left'}};
+    // ── Styles professionnels ──
+    const bdr  = {top:{style:'thin',color:{rgb:'B0BEC5'}},bottom:{style:'thin',color:{rgb:'B0BEC5'}},left:{style:'thin',color:{rgb:'B0BEC5'}},right:{style:'thin',color:{rgb:'B0BEC5'}}};
+    const bdrM = {top:{style:'medium',color:{rgb:'546E7A'}},bottom:{style:'medium',color:{rgb:'546E7A'}},left:{style:'medium',color:{rgb:'546E7A'}},right:{style:'medium',color:{rgb:'546E7A'}}};
+
+    // Titre principal — bleu marine foncé
+    const titleStyle = {font:{bold:true,sz:18,color:{rgb:'FFFFFF'},name:'Calibri'},fill:{fgColor:{rgb:'0D1B2A'}},alignment:{horizontal:'center',vertical:'center'},border:bdrM};
+    // Sous-titre — bleu acier
+    const subtitleStyle = {font:{bold:true,sz:11,color:{rgb:'B0C4DE'},name:'Calibri'},fill:{fgColor:{rgb:'1B2838'}},alignment:{horizontal:'center',vertical:'center'},border:bdrM};
+    // Section — bleu professionnel dégradé
+    const sectionStyle = {font:{bold:true,sz:12,color:{rgb:'FFFFFF'},name:'Calibri'},fill:{fgColor:{rgb:'1565C0'}},alignment:{vertical:'center'},border:bdrM};
+    // En-tête tableau — gris anthracite
+    const headerStyle = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'},name:'Calibri'},fill:{fgColor:{rgb:'37474F'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:bdrM};
+    // Label — fond bleu très clair
+    const labelStyle = {font:{bold:true,sz:10,color:{rgb:'1A237E'},name:'Calibri'},fill:{fgColor:{rgb:'E3F2FD'}},border:bdr,alignment:{vertical:'center'}};
+    // Valeur — fond blanc cassé
+    const valueStyle = {font:{sz:10,name:'Calibri'},fill:{fgColor:{rgb:'FAFAFA'}},border:bdr,alignment:{horizontal:'left',vertical:'center',wrapText:true}};
+    // Valeur mise en avant
+    const valueHighlight = {font:{bold:true,sz:10,color:{rgb:'0D47A1'},name:'Calibri'},fill:{fgColor:{rgb:'E8EAF6'}},border:bdr,alignment:{horizontal:'left',vertical:'center'}};
+    // Description — fond crème
+    const descStyle = {font:{sz:9,color:{rgb:'424242'},name:'Calibri'},fill:{fgColor:{rgb:'FFF8E1'}},border:bdr,alignment:{horizontal:'left',vertical:'center',wrapText:true}};
+    const descLabelStyle = {font:{bold:true,sz:10,color:{rgb:'E65100'},name:'Calibri'},fill:{fgColor:{rgb:'FFF8E1'}},border:bdr,alignment:{vertical:'top'}};
+
+    // Statuts — couleurs saturées et lisibles
     const statusColors = {
-        'present':  {font:{bold:true,sz:10,color:{rgb:'155724'}},fill:{fgColor:{rgb:'D4EDDA'}},border:border,alignment:{horizontal:'center'}},
-        'absent':   {font:{bold:true,sz:10,color:{rgb:'721C24'}},fill:{fgColor:{rgb:'F8D7DA'}},border:border,alignment:{horizontal:'center'}},
-        'autre-zone':{font:{bold:true,sz:10,color:{rgb:'856404'}},fill:{fgColor:{rgb:'FFF3CD'}},border:border,alignment:{horizontal:'center'}},
-        'sortie-exterieure':{font:{bold:true,sz:10,color:{rgb:'0C5460'}},fill:{fgColor:{rgb:'D1ECF1'}},border:border,alignment:{horizontal:'center'}},
-        'pending':  {font:{bold:true,sz:10,color:{rgb:'6C757D'}},fill:{fgColor:{rgb:'E9ECEF'}},border:border,alignment:{horizontal:'center'}}
+        'present':           {font:{bold:true,sz:10,color:{rgb:'1B5E20'},name:'Calibri'},fill:{fgColor:{rgb:'C8E6C9'}},border:bdr,alignment:{horizontal:'center'}},
+        'absent':            {font:{bold:true,sz:10,color:{rgb:'B71C1C'},name:'Calibri'},fill:{fgColor:{rgb:'FFCDD2'}},border:bdr,alignment:{horizontal:'center'}},
+        'autre-zone':        {font:{bold:true,sz:10,color:{rgb:'E65100'},name:'Calibri'},fill:{fgColor:{rgb:'FFE0B2'}},border:bdr,alignment:{horizontal:'center'}},
+        'sortie-exterieure': {font:{bold:true,sz:10,color:{rgb:'01579B'},name:'Calibri'},fill:{fgColor:{rgb:'B3E5FC'}},border:bdr,alignment:{horizontal:'center'}},
+        'pending':           {font:{bold:true,sz:10,color:{rgb:'4E342E'},name:'Calibri'},fill:{fgColor:{rgb:'D7CCC8'}},border:bdr,alignment:{horizontal:'center'}}
     };
     const statLabels = {'present':'Présent','absent':'Absent','autre-zone':'Autre zone','sortie-exterieure':'Sortie ext.','pending':'À vérifier'};
+
     const cellVal = (v, s) => ({v:v, t:'s', s:s});
     const cellNum = (v, s) => ({v:v, t:'n', s:s});
 
     function applyHeaderRow(ws, row, cols, style) {
         cols.forEach((c, i) => {
-            const ref = XLSX.utils.encode_cell({r:row, c:i});
-            ws[ref] = cellVal(c, style);
+            ws[XLSX.utils.encode_cell({r:row, c:i})] = cellVal(c, style);
         });
     }
     function setRange(ws, rows, cols) {
         ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows-1,c:cols-1}});
     }
+    // Remplir une ligne entière de N colonnes avec un style
+    function fillRow(ws, row, cols, style) {
+        for (let c = 0; c < cols; c++) {
+            const ref = XLSX.utils.encode_cell({r:row, c:c});
+            if (!ws[ref]) ws[ref] = cellVal('', style);
+        }
+    }
 
     // ── Feuille 1 : Page de garde ──────────────────────────────────────
     const ws1 = {};
+    const merges1 = [];
     let r1 = 0;
-    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('EXERCICE PPMS - PLAN PARTICULIER DE MISE EN SURETE', titleStyle);
-    ws1['!merges'] = [{s:{r:0,c:0},e:{r:0,c:1}}];
+
+    // Titre
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('RAPPORT D\'EXERCICE PPMS', titleStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', titleStyle);
+    merges1.push({s:{r:0,c:0},e:{r:0,c:1}});
+    r1++;
+    // Sous-titre
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Plan Particulier de Mise en Sûreté', subtitleStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', subtitleStyle);
+    merges1.push({s:{r:r1,c:0},e:{r:r1,c:1}});
     r1 += 2;
+
+    // ─ ETABLISSEMENT ─
     ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('ETABLISSEMENT', sectionStyle);
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', sectionStyle);
+    merges1.push({s:{r:r1,c:0},e:{r:r1,c:1}});
     r1++;
-    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Nom:', labelStyle);
-    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(config.nomEtab || '', valueStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Nom :', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(config.nomEtab || '', valueHighlight);
     r1++;
-    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Adresse:', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Adresse :', labelStyle);
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(config.adresseEtab || '', valueStyle);
     r1++;
-    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Téléphone:', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Téléphone :', labelStyle);
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(config.telEtab || '', valueStyle);
     r1++;
     if (config.descriptionEtab) {
-        // Découpe chaque ligne puis limite à 15 mots par cellule
         const rawLines = config.descriptionEtab.split('\n').filter(l => l.trim() !== '');
         const descLines = [];
         rawLines.forEach(line => {
@@ -2506,87 +2540,118 @@ function exportExcel() {
                 descLines.push(words.slice(i, i + 15).join(' '));
             }
         });
-        ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Description:', labelStyle);
+        ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Description :', descLabelStyle);
         descLines.forEach((l, idx) => {
-            ws1[XLSX.utils.encode_cell({r:r1+idx,c:1})] = cellVal(l, valueStyle);
-            if (idx > 0) ws1[XLSX.utils.encode_cell({r:r1+idx,c:0})] = cellVal('', valueStyle);
+            ws1[XLSX.utils.encode_cell({r:r1+idx,c:1})] = cellVal(l, descStyle);
+            if (idx > 0) ws1[XLSX.utils.encode_cell({r:r1+idx,c:0})] = cellVal('', descStyle);
         });
         r1 += descLines.length;
     }
     r1++;
-    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('CONTEXTE DE L\'EXERCICE PPMS', sectionStyle);
+
+    // ─ CONTEXTE ─
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('CONTEXTE DE L\'EXERCICE', sectionStyle);
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', sectionStyle);
+    merges1.push({s:{r:r1,c:0},e:{r:r1,c:1}});
     r1++;
-    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Date de l\'exercice:', labelStyle);
-    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(now, valueStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Date :', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(now, valueHighlight);
     r1++;
-    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Type de scénario:', labelStyle);
-    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(exercise.scenario.type || '', valueStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Type de scénario :', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(exercise.scenario.type || '', valueHighlight);
+    r1++;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Effectif total :', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(`${total} personnes (${allP.length} personnel + ${allE.length} enfants)`, valueHighlight);
     r1 += 2;
+
+    // ─ SCENARIO ─
     ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('SCENARIO', sectionStyle);
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', sectionStyle);
+    merges1.push({s:{r:r1,c:0},e:{r:r1,c:1}});
     r1++;
-    (exercise.scenario.description || 'Aucun scénario défini').split('\n').forEach(l => {
+    const scLines = (exercise.scenario.description || 'Aucun scénario défini').split('\n').filter(l => l.trim() !== '');
+    scLines.forEach(l => {
         ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal(l, valueStyle);
         ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', valueStyle);
+        merges1.push({s:{r:r1,c:0},e:{r:r1,c:1}});
         r1++;
     });
     r1++;
+
+    // ─ OBJECTIFS ─
     ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('OBJECTIFS DE L\'EXERCICE', sectionStyle);
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', sectionStyle);
+    merges1.push({s:{r:r1,c:0},e:{r:r1,c:1}});
     r1++;
-    (exercise.scenario.objectifs || '').split('\n').forEach(l => {
+    const objLines = (exercise.scenario.objectifs || '').split('\n').filter(l => l.trim() !== '');
+    objLines.forEach(l => {
         ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal(l, valueStyle);
         ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', valueStyle);
+        merges1.push({s:{r:r1,c:0},e:{r:r1,c:1}});
         r1++;
     });
+
     setRange(ws1, r1, 2);
-    ws1['!cols'] = [{wch:30},{wch:70}];
-    ws1['!rows'] = [{hpt:30}];
+    ws1['!merges'] = merges1;
+    ws1['!cols'] = [{wch:28},{wch:80}];
+    ws1['!rows'] = [{hpt:36},{hpt:22}];
     XLSX.utils.book_append_sheet(wb, ws1, 'Page de garde');
 
     // ── Feuille 2 : Statistiques ───────────────────────────────────────
     const ws2 = {};
-    const greenNum = {font:{bold:true,sz:11,color:{rgb:'155724'}},fill:{fgColor:{rgb:'D4EDDA'}},border:border,alignment:{horizontal:'center'}};
-    const redNum = {font:{bold:true,sz:11,color:{rgb:'721C24'}},fill:{fgColor:{rgb:'F8D7DA'}},border:border,alignment:{horizontal:'center'}};
-    const yellowNum = {font:{bold:true,sz:11,color:{rgb:'856404'}},fill:{fgColor:{rgb:'FFF3CD'}},border:border,alignment:{horizontal:'center'}};
-    const blueNum = {font:{bold:true,sz:11,color:{rgb:'0C5460'}},fill:{fgColor:{rgb:'D1ECF1'}},border:border,alignment:{horizontal:'center'}};
-    const grayNum = {font:{bold:true,sz:11,color:{rgb:'6C757D'}},fill:{fgColor:{rgb:'E9ECEF'}},border:border,alignment:{horizontal:'center'}};
-    const totalStyle = {font:{bold:true,sz:11,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1A5276'}},border:border,alignment:{horizontal:'center'}};
+    const merges2 = [];
+    const greenNum  = {font:{bold:true,sz:11,color:{rgb:'1B5E20'},name:'Calibri'},fill:{fgColor:{rgb:'C8E6C9'}},border:bdr,alignment:{horizontal:'center'}};
+    const redNum    = {font:{bold:true,sz:11,color:{rgb:'B71C1C'},name:'Calibri'},fill:{fgColor:{rgb:'FFCDD2'}},border:bdr,alignment:{horizontal:'center'}};
+    const yellowNum = {font:{bold:true,sz:11,color:{rgb:'E65100'},name:'Calibri'},fill:{fgColor:{rgb:'FFE0B2'}},border:bdr,alignment:{horizontal:'center'}};
+    const blueNum   = {font:{bold:true,sz:11,color:{rgb:'01579B'},name:'Calibri'},fill:{fgColor:{rgb:'B3E5FC'}},border:bdr,alignment:{horizontal:'center'}};
+    const grayNum   = {font:{bold:true,sz:11,color:{rgb:'4E342E'},name:'Calibri'},fill:{fgColor:{rgb:'D7CCC8'}},border:bdr,alignment:{horizontal:'center'}};
+    const totalSt   = {font:{bold:true,sz:12,color:{rgb:'FFFFFF'},name:'Calibri'},fill:{fgColor:{rgb:'0D1B2A'}},border:bdrM,alignment:{horizontal:'center'}};
 
     ws2[XLSX.utils.encode_cell({r:0,c:0})] = cellVal('RECAPITULATIF EXERCICE PPMS', titleStyle);
-    ws2['!merges'] = [{s:{r:0,c:0},e:{r:0,c:2}}];
-    ws2[XLSX.utils.encode_cell({r:1,c:0})] = cellVal('Date:', labelStyle);
-    ws2[XLSX.utils.encode_cell({r:1,c:1})] = cellVal(now, {...valueStyle, alignment:{horizontal:'left'}});
-    ws2[XLSX.utils.encode_cell({r:1,c:2})] = cellVal('', valueStyle);
+    fillRow(ws2, 0, 3, titleStyle);
+    merges2.push({s:{r:0,c:0},e:{r:0,c:2}});
 
-    applyHeaderRow(ws2, 3, ['Indicateur','Nombre','Pourcentage'], headerStyle);
+    ws2[XLSX.utils.encode_cell({r:1,c:0})] = cellVal(config.nomEtab || 'Etablissement', subtitleStyle);
+    fillRow(ws2, 1, 3, subtitleStyle);
+    merges2.push({s:{r:1,c:0},e:{r:1,c:2}});
+
+    ws2[XLSX.utils.encode_cell({r:2,c:0})] = cellVal('Date :', labelStyle);
+    ws2[XLSX.utils.encode_cell({r:2,c:1})] = cellVal(now, valueHighlight);
+    ws2[XLSX.utils.encode_cell({r:2,c:2})] = cellVal('Scénario : ' + (exercise.scenario.type || ''), valueHighlight);
+
+    applyHeaderRow(ws2, 4, ['Indicateur','Nombre','Pourcentage'], headerStyle);
 
     const statRows = [
-        ['Total personnes', total, '100%', totalStyle],
+        ['Total personnes', total, '100%', totalSt],
         ['Présents localisés (total)', localises, pct(localises), greenNum],
-        ['  Dans leur zone normale', presents, pct(presents), greenNum],
-        ['  Dans une autre zone', autreZone, pct(autreZone), yellowNum],
-        ['  En sortie extérieure', sortieExt, pct(sortieExt), blueNum],
+        ['    Dans leur zone normale', presents, pct(presents), greenNum],
+        ['    Dans une autre zone', autreZone, pct(autreZone), yellowNum],
+        ['    En sortie extérieure', sortieExt, pct(sortieExt), blueNum],
         ['Absents (non localisés)', absents, pct(absents), redNum],
         ['A vérifier', pending, pct(pending), grayNum],
     ];
     statRows.forEach((row, i) => {
-        const r = 4 + i;
-        ws2[XLSX.utils.encode_cell({r:r,c:0})] = cellVal(row[0], {...labelStyle, font:{...labelStyle.font, bold: i===0}});
+        const r = 5 + i;
+        const lbl = i === 0 ? {...labelStyle, font:{...labelStyle.font, bold:true, sz:11}} : labelStyle;
+        ws2[XLSX.utils.encode_cell({r:r,c:0})] = cellVal(row[0], lbl);
         ws2[XLSX.utils.encode_cell({r:r,c:1})] = cellNum(row[1], row[3]);
         ws2[XLSX.utils.encode_cell({r:r,c:2})] = cellVal(row[2], row[3]);
     });
-    const r2sep = 4 + statRows.length + 1;
-    ws2[XLSX.utils.encode_cell({r:r2sep,c:0})] = cellVal('Personnel total', labelStyle);
-    ws2[XLSX.utils.encode_cell({r:r2sep,c:1})] = cellNum(allP.length, {...valueStyle, alignment:{horizontal:'center'}});
-    ws2[XLSX.utils.encode_cell({r:r2sep,c:2})] = cellVal('', valueStyle);
-    ws2[XLSX.utils.encode_cell({r:r2sep+1,c:0})] = cellVal('Enfants total', labelStyle);
-    ws2[XLSX.utils.encode_cell({r:r2sep+1,c:1})] = cellNum(allE.length, {...valueStyle, alignment:{horizontal:'center'}});
+
+    const r2sep = 5 + statRows.length + 1;
+    const detailHeader = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'},name:'Calibri'},fill:{fgColor:{rgb:'455A64'}},border:bdrM,alignment:{horizontal:'center'}};
+    applyHeaderRow(ws2, r2sep, ['Catégorie','Effectif',''], detailHeader);
+    ws2[XLSX.utils.encode_cell({r:r2sep+1,c:0})] = cellVal('Personnel', labelStyle);
+    ws2[XLSX.utils.encode_cell({r:r2sep+1,c:1})] = cellNum(allP.length, {...valueHighlight, alignment:{horizontal:'center'}});
     ws2[XLSX.utils.encode_cell({r:r2sep+1,c:2})] = cellVal('', valueStyle);
-    setRange(ws2, r2sep+2, 3);
-    ws2['!cols'] = [{wch:35},{wch:14},{wch:14}];
-    ws2['!rows'] = [{hpt:30}];
+    ws2[XLSX.utils.encode_cell({r:r2sep+2,c:0})] = cellVal('Enfants', labelStyle);
+    ws2[XLSX.utils.encode_cell({r:r2sep+2,c:1})] = cellNum(allE.length, {...valueHighlight, alignment:{horizontal:'center'}});
+    ws2[XLSX.utils.encode_cell({r:r2sep+2,c:2})] = cellVal('', valueStyle);
+
+    setRange(ws2, r2sep+3, 3);
+    ws2['!merges'] = merges2;
+    ws2['!cols'] = [{wch:35},{wch:16},{wch:16}];
+    ws2['!rows'] = [{hpt:36},{hpt:22}];
     XLSX.utils.book_append_sheet(wb, ws2, 'Statistiques');
 
     // ── Feuille 3 : Détail par zone ────────────────────────────────────
@@ -2594,7 +2659,10 @@ function exportExcel() {
     const z3cols = ['Zone','Bât.','Étage','Type','Nom','Prénom','Statut','Lieu origine','Zone dest.','Tél. zone'];
     applyHeaderRow(ws3, 0, z3cols, headerStyle);
     let r3 = 1;
-    const zoneHeaderStyle = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'2471A3'}},border:border};
+    const zoneHeaderStyle = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'},name:'Calibri'},fill:{fgColor:{rgb:'1565C0'}},border:bdrM};
+    const rowEven = {font:{sz:10,name:'Calibri'},fill:{fgColor:{rgb:'F5F5F5'}},border:bdr};
+    const rowOdd  = {font:{sz:10,name:'Calibri'},fill:{fgColor:{rgb:'FFFFFF'}},border:bdr};
+
     config.zones.filter(z => z.slug !== 'sortie-exterieure').forEach(zone => {
         const tel = exercise.zonePhones ? (exercise.zonePhones[zone.slug] || '') : '';
         const persons = [
@@ -2610,7 +2678,7 @@ function exportExcel() {
             persons.forEach((p, i) => {
                 const destZ = p.status === 'autre-zone' && p.autre_zone_slug
                     ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom : '';
-                const rowStyle = i === 0 ? zoneHeaderStyle : {font:{sz:10},fill:{fgColor:{rgb: i%2===0 ? 'F8F9FA' : 'FFFFFF'}},border:border};
+                const rowStyle = i === 0 ? zoneHeaderStyle : (i%2===0 ? rowEven : rowOdd);
                 const vals = [
                     i===0?zone.nom:'', i===0?zone.batiment:'', i===0?(zone.etage||'RDC'):'',
                     p.tp, p.nom, p.prenom, statLabels[p.status]||p.status, p.lieu_origine||'', destZ, i===0?tel:''
@@ -2624,7 +2692,8 @@ function exportExcel() {
         }
     });
     setRange(ws3, r3, 10);
-    ws3['!cols'] = [{wch:20},{wch:10},{wch:8},{wch:10},{wch:18},{wch:16},{wch:14},{wch:18},{wch:18},{wch:16}];
+    ws3['!cols'] = [{wch:22},{wch:12},{wch:8},{wch:10},{wch:18},{wch:16},{wch:14},{wch:18},{wch:18},{wch:16}];
+    ws3['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:r3-1,c:9}})};
     XLSX.utils.book_append_sheet(wb, ws3, 'Détail par zone');
 
     // ── Helper pour feuilles Personnel / Enfants ──
@@ -2636,9 +2705,9 @@ function exportExcel() {
             const r = i + 1;
             const z = config.zones.find(z=>z.slug===p.zone_slug);
             const destZ = p.status==='autre-zone'&&p.autre_zone_slug ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom : '';
-            const rowBg = i%2===0 ? 'F8F9FA' : 'FFFFFF';
-            const rowStyle = {font:{sz:10},fill:{fgColor:{rgb:rowBg}},border:border};
-            ws[XLSX.utils.encode_cell({r:r,c:0})] = cellVal(p.nom, {...rowStyle, font:{bold:true,sz:10}});
+            const rowStyle = i%2===0 ? rowEven : rowOdd;
+            const nameStyle = {...rowStyle, font:{bold:true,sz:10,name:'Calibri'}};
+            ws[XLSX.utils.encode_cell({r:r,c:0})] = cellVal(p.nom, nameStyle);
             ws[XLSX.utils.encode_cell({r:r,c:1})] = cellVal(p.prenom, rowStyle);
             ws[XLSX.utils.encode_cell({r:r,c:2})] = cellVal(z?z.nom:'', rowStyle);
             ws[XLSX.utils.encode_cell({r:r,c:3})] = cellVal(statLabels[p.status]||p.status, statusColors[p.status]||rowStyle);
@@ -2646,7 +2715,7 @@ function exportExcel() {
             ws[XLSX.utils.encode_cell({r:r,c:5})] = cellVal(p.lieu_origine||'', rowStyle);
         });
         setRange(ws, persons.length+1, 6);
-        ws['!cols'] = [{wch:20},{wch:18},{wch:22},{wch:16},{wch:22},{wch:22}];
+        ws['!cols'] = [{wch:20},{wch:18},{wch:24},{wch:16},{wch:24},{wch:24}];
         ws['!autofilter'] = {ref: XLSX.utils.encode_range({s:{r:0,c:0},e:{r:persons.length,c:5}})};
         XLSX.utils.book_append_sheet(wb, ws, title);
     }

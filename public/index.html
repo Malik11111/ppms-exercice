@@ -2497,7 +2497,15 @@ function exportExcel() {
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(config.telEtab || '', valueStyle);
     r1++;
     if (config.descriptionEtab) {
-        const descLines = config.descriptionEtab.split('\n').filter(l => l.trim() !== '');
+        // Découpe chaque ligne puis limite à 15 mots par cellule
+        const rawLines = config.descriptionEtab.split('\n').filter(l => l.trim() !== '');
+        const descLines = [];
+        rawLines.forEach(line => {
+            const words = line.split(/\s+/);
+            for (let i = 0; i < words.length; i += 15) {
+                descLines.push(words.slice(i, i + 15).join(' '));
+            }
+        });
         ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Description:', labelStyle);
         descLines.forEach((l, idx) => {
             ws1[XLSX.utils.encode_cell({r:r1+idx,c:1})] = cellVal(l, valueStyle);

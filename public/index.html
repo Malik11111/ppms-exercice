@@ -2669,26 +2669,30 @@ function exportExcel() {
             ...exercise.personnel.filter(p => p.zone_slug === zone.slug).map(p => ({...p, tp:'Personnel'})),
             ...exercise.enfants.filter(p => p.zone_slug === zone.slug).map(p => ({...p, tp:'Enfant'})),
         ];
-        if (persons.length === 0) {
-            [zone.nom, zone.batiment, zone.etage||'RDC', '—','—','—','—','—','—', tel].forEach((v, i) => {
-                ws3[XLSX.utils.encode_cell({r:r3,c:i})] = cellVal(v, zoneHeaderStyle);
+        // Ligne de titre de zone (toujours séparée)
+        [zone.nom, zone.batiment, zone.etage||'RDC', '', '', '', '', '', '', tel].forEach((v, i) => {
+            ws3[XLSX.utils.encode_cell({r:r3,c:i})] = cellVal(v, zoneHeaderStyle);
+        });
+        r3++;
+        // Lignes des personnes en dessous
+        persons.forEach((p, i) => {
+            const destZ = p.status === 'autre-zone' && p.autre_zone_slug
+                ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom
+                : p.status === 'sortie-exterieure' ? 'Sortie extérieure' : '';
+            const rowStyle = i%2===0 ? rowEven : rowOdd;
+            const vals = ['', '', '', p.tp, p.nom, p.prenom, statLabels[p.status]||p.status, p.lieu_origine||'', destZ, ''];
+            vals.forEach((v, ci) => {
+                const st = ci === 6 ? (statusColors[p.status] || rowStyle) : rowStyle;
+                ws3[XLSX.utils.encode_cell({r:r3,c:ci})] = cellVal(v, st);
             });
             r3++;
-        } else {
-            persons.forEach((p, i) => {
-                const destZ = p.status === 'autre-zone' && p.autre_zone_slug
-                    ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom : '';
-                const rowStyle = i === 0 ? zoneHeaderStyle : (i%2===0 ? rowEven : rowOdd);
-                const vals = [
-                    i===0?zone.nom:'', i===0?zone.batiment:'', i===0?(zone.etage||'RDC'):'',
-                    p.tp, p.nom, p.prenom, statLabels[p.status]||p.status, p.lieu_origine||'', destZ, i===0?tel:''
-                ];
-                vals.forEach((v, ci) => {
-                    const st = ci === 6 ? (statusColors[p.status] || rowStyle) : (i===0 ? zoneHeaderStyle : rowStyle);
-                    ws3[XLSX.utils.encode_cell({r:r3,c:ci})] = cellVal(v, st);
-                });
-                r3++;
+        });
+        if (persons.length === 0) {
+            // Zone vide : indiquer explicitement
+            ['', '', '', '—', 'Aucune personne affectée', '', '', '', '', ''].forEach((v, i) => {
+                ws3[XLSX.utils.encode_cell({r:r3,c:i})] = cellVal(v, {...rowEven, font:{...rowEven.font, color:{rgb:'9E9E9E'}}});
             });
+            r3++;
         }
     });
     setRange(ws3, r3, 10);

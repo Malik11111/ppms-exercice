@@ -2704,7 +2704,9 @@ function exportExcel() {
         persons.forEach((p, i) => {
             const r = i + 1;
             const z = config.zones.find(z=>z.slug===p.zone_slug);
-            const destZ = p.status==='autre-zone'&&p.autre_zone_slug ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom : '';
+            const destZ = p.status==='autre-zone' && p.autre_zone_slug
+                ? (config.zones.find(z=>z.slug===p.autre_zone_slug)||{nom:p.autre_zone_slug}).nom
+                : p.status==='sortie-exterieure' ? 'Sortie extérieure' : '';
             const rowStyle = i%2===0 ? rowEven : rowOdd;
             const nameStyle = {...rowStyle, font:{bold:true,sz:10,name:'Calibri'}};
             ws[XLSX.utils.encode_cell({r:r,c:0})] = cellVal(p.nom, nameStyle);

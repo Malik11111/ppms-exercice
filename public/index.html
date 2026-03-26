@@ -2656,7 +2656,7 @@ function exportExcel() {
 
     // ── Feuille 3 : Détail par zone ────────────────────────────────────
     const ws3 = {};
-    const z3cols = ['Zone','Bât.','Étage','Type','Nom','Prénom','Statut','Lieu origine','Zone dest.','Tél. zone'];
+    const z3cols = ['Zone','Bât.','Étage','Type','Nom','Prénom','Statut','Lieu origine','Hors zone prévue','Tél. zone'];
     applyHeaderRow(ws3, 0, z3cols, headerStyle);
     let r3 = 1;
     const zoneHeaderStyle = {font:{bold:true,sz:10,color:{rgb:'FFFFFF'},name:'Calibri'},fill:{fgColor:{rgb:'1565C0'}},border:bdrM};
@@ -2699,7 +2699,7 @@ function exportExcel() {
     // ── Helper pour feuilles Personnel / Enfants ──
     function makePersonSheet(title, persons) {
         const ws = {};
-        const cols = ['Nom','Prénom','Zone assignée','Statut','Zone destination','Lieu d\'origine'];
+        const cols = ['Nom','Prénom','Zone assignée','Statut','Hors zone prévue','Lieu d\'origine'];
         applyHeaderRow(ws, 0, cols, headerStyle);
         persons.forEach((p, i) => {
             const r = i + 1;

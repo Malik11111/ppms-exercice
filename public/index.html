@@ -2497,12 +2497,13 @@ function exportExcel() {
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(config.telEtab || '', valueStyle);
     r1++;
     if (config.descriptionEtab) {
+        const descLines = config.descriptionEtab.split('\n').filter(l => l.trim() !== '');
         ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Description:', labelStyle);
-        config.descriptionEtab.split('\n').forEach((l, idx) => {
+        descLines.forEach((l, idx) => {
             ws1[XLSX.utils.encode_cell({r:r1+idx,c:1})] = cellVal(l, valueStyle);
             if (idx > 0) ws1[XLSX.utils.encode_cell({r:r1+idx,c:0})] = cellVal('', valueStyle);
         });
-        r1 += config.descriptionEtab.split('\n').length;
+        r1 += descLines.length;
     }
     r1++;
     ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('CONTEXTE DE L\'EXERCICE PPMS', sectionStyle);

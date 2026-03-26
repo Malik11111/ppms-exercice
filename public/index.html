@@ -404,6 +404,7 @@
             <button class="cfg-tab" onclick="switchCfgTab('enfants')">👶 Enfants</button>
             <button class="cfg-tab" onclick="switchCfgTab('lieux')">🏠 Lieux</button>
             <button class="cfg-tab" onclick="switchCfgTab('regles')">🔷 Règles PPMS</button>
+            <button class="cfg-tab" onclick="switchCfgTab('etablissement')">🏫 Etablissement</button>
         </div>
 
         <!-- PERSONNEL -->
@@ -579,6 +580,29 @@
             </div>
         </div>
 
+        <!-- ETABLISSEMENT -->
+        <div id="cfgEtablissement" class="cfg-tab-content">
+            <p style="color:#1976d2;font-size:13px;margin-bottom:12px;">🏫 Informations de l'établissement — apparaissent dans tous les exports Excel</p>
+            <div class="form-row">
+                <div class="form-field" style="flex:2;min-width:250px;">
+                    <label>Nom de l'établissement *</label>
+                    <input type="text" id="etabNom" placeholder="Pôle Épilepsie Léopold Bellan de Bry-sur-Marne" oninput="saveEtablissement()">
+                </div>
+                <div class="form-field" style="flex:2;min-width:250px;">
+                    <label>Adresse</label>
+                    <input type="text" id="etabAdresse" placeholder="5 rue du 26 août 1944, 94360 BRY-SUR-MARNE" oninput="saveEtablissement()">
+                </div>
+                <div class="form-field" style="max-width:180px;">
+                    <label>Téléphone</label>
+                    <input type="text" id="etabTel" placeholder="01 48 81 00 39" oninput="saveEtablissement()">
+                </div>
+            </div>
+            <div class="form-field" style="margin-top:8px;">
+                <label>Description de l'établissement</label>
+                <textarea id="etabDescription" rows="6" placeholder="Description de l'établissement…" oninput="saveEtablissement()" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;font-size:13px;resize:vertical;"></textarea>
+            </div>
+        </div>
+
         <div class="modal-actions">
             <button class="btn btn-dark" onclick="closeConfig()">✕ Fermer</button>
         </div>
@@ -746,11 +770,15 @@ const DEFAULT_CONFIG = {"zones":[{"id":1,"nom":"Les Choucas","slug":"les-choucas
 // MODÈLE DE DONNÉES
 // ─────────────────────────────────────────────────────────────────────────
 let config = {
-    zones:     [],   // [{id, nom, slug, batiment, icone, etage, telephone}]
-    personnel: [],   // [{id, nom, prenom, poste, lieu, contrat, date_entree, date_fin}]
-    enfants:   [],   // [{id, nom, prenom, groupe}]
-    lieux:     [],   // [{id, nom, type, batiment, etage, zone_ppms}]
-    regles:    [],   // [{id, lieu, batiment, etage, ppms_normal, intrusion_externe, ...}]
+    zones:          [],   // [{id, nom, slug, batiment, icone, etage, telephone}]
+    personnel:      [],   // [{id, nom, prenom, poste, lieu, contrat, date_entree, date_fin}]
+    enfants:        [],   // [{id, nom, prenom, groupe}]
+    lieux:          [],   // [{id, nom, type, batiment, etage, zone_ppms}]
+    regles:         [],   // [{id, lieu, batiment, etage, ppms_normal, intrusion_externe, ...}]
+    nomEtab:        '',
+    adresseEtab:    '',
+    telEtab:        '',
+    descriptionEtab: '',
 };
 
 let exercise = {
@@ -1280,17 +1308,33 @@ function closeConfig() {
     renderAllZones();
 }
 
+function loadEtablissementFields() {
+    document.getElementById('etabNom').value         = config.nomEtab        || '';
+    document.getElementById('etabAdresse').value     = config.adresseEtab    || '';
+    document.getElementById('etabTel').value         = config.telEtab        || '';
+    document.getElementById('etabDescription').value = config.descriptionEtab || '';
+}
+
+function saveEtablissement() {
+    config.nomEtab         = document.getElementById('etabNom').value.trim();
+    config.adresseEtab     = document.getElementById('etabAdresse').value.trim();
+    config.telEtab         = document.getElementById('etabTel').value.trim();
+    config.descriptionEtab = document.getElementById('etabDescription').value.trim();
+    saveConfig();
+}
+
 function switchCfgTab(tab) {
     cfgCurrentTab = tab;
     document.querySelectorAll('.cfg-tab').forEach((el, i) => {
-        const names = ['zones', 'personnel', 'enfants', 'regles'];
+        const names = ['personnel', 'enfants', 'lieux', 'regles', 'etablissement'];
         el.classList.toggle('active', names[i] === tab);
     });
     document.querySelectorAll('.cfg-tab-content').forEach(el => el.classList.remove('active'));
-    const tabMap = {regles:'cfgRegles', lieux:'cfgLieux', personnel:'cfgPersonnel', enfants:'cfgEnfants', zones:'cfgZones'};
+    const tabMap = {regles:'cfgRegles', lieux:'cfgLieux', personnel:'cfgPersonnel', enfants:'cfgEnfants', zones:'cfgZones', etablissement:'cfgEtablissement'};
     const id = tabMap[tab] || ('cfg' + tab.charAt(0).toUpperCase() + tab.slice(1));
     document.getElementById(id).classList.add('active');
     if (tab === 'regles') renderCfgRegles();
+    if (tab === 'etablissement') loadEtablissementFields();
 }
 
 // ─── Zones ────────────────────────────────────────────────────────────────
@@ -2436,8 +2480,23 @@ function exportExcel() {
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', sectionStyle);
     r1++;
     ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Nom:', labelStyle);
-    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('Etablissement', valueStyle);
-    r1 += 2;
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(config.nomEtab || '', valueStyle);
+    r1++;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Adresse:', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(config.adresseEtab || '', valueStyle);
+    r1++;
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Téléphone:', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(config.telEtab || '', valueStyle);
+    r1++;
+    if (config.descriptionEtab) {
+        ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Description:', labelStyle);
+        config.descriptionEtab.split('\n').forEach((l, idx) => {
+            ws1[XLSX.utils.encode_cell({r:r1+idx,c:1})] = cellVal(l, valueStyle);
+            if (idx > 0) ws1[XLSX.utils.encode_cell({r:r1+idx,c:0})] = cellVal('', valueStyle);
+        });
+        r1 += config.descriptionEtab.split('\n').length;
+    }
+    r1++;
     ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('CONTEXTE DE L\'EXERCICE PPMS', sectionStyle);
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal('', sectionStyle);
     r1++;

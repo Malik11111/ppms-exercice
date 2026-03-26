@@ -174,6 +174,7 @@ body {
   const SPEED = 0.008; // plus lent = assemblage plus doux
   let phase = 0, phaseTimer = 0, assembleFrames = 0;
   let buildingBottom = 0;
+  let bOX = 0, bOY = 0, bCELL = 8, bSTEP = 9, sceneAlpha = 0;
 
   // 1=brique 2=vitre 3=toit 4=feuillage 5=tronc 6=herbe 7=porte 8=buisson 9=fleur
   const PAL = {
@@ -243,6 +244,7 @@ body {
     const ox = Math.round((w - bw) / 2);
     const oy = Math.round((h - bh) / 2) + 15;
     buildingBottom = oy + bh;
+    bOX = ox; bOY = oy; bCELL = CELL; bSTEP = STEP;
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -338,6 +340,98 @@ body {
     ctx.restore();
   }
 
+  function drawExtras() {
+    if (sceneAlpha <= 0) return;
+    ctx.save();
+    const S = bSTEP, ox = bOX, oy = bOY;
+    const cols = B[0].length, bw = cols * S;
+    const t = Date.now() * 0.00024;
+
+    // Soleil — halo doux en haut a gauche
+    ctx.globalAlpha = sceneAlpha;
+    const sunX = ox + bw * 0.15, sunY = oy - bCELL * 3.2;
+    const sg = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, bCELL * 6);
+    sg.addColorStop(0, 'rgba(255,235,100,0.95)');
+    sg.addColorStop(0.38, 'rgba(255,200,50,0.5)');
+    sg.addColorStop(1, 'rgba(255,160,0,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(sunX, sunY, bCELL * 6, 0, Math.PI * 2); ctx.fill();
+
+    // Oiseaux — 3 V animes dans le ciel
+    ctx.strokeStyle = 'rgba(255,225,120,0.9)';
+    ctx.lineWidth = Math.max(1.2, bCELL * 0.18);
+    ctx.lineCap = 'round';
+    const bs = bCELL * 0.55;
+    [
+      { x: sunX + bCELL * 7  + Math.sin(t) * bCELL * 1.4,       y: sunY - bCELL * 0.3 + Math.cos(t * 0.7) * bCELL * 0.4 },
+      { x: sunX + bCELL * 11 + Math.sin(t + 0.9) * bCELL * 1.1, y: sunY - bCELL * 1.1 + Math.cos(t * 0.6 + 1) * bCELL * 0.35 },
+      { x: sunX + bCELL * 15 + Math.sin(t + 1.8) * bCELL * 0.9, y: sunY + bCELL * 0.3 + Math.cos(t * 0.8 + 2) * bCELL * 0.4 },
+    ].forEach(b => {
+      ctx.beginPath();
+      ctx.moveTo(b.x - bs, b.y);
+      ctx.quadraticCurveTo(b.x, b.y - bs * 0.65, b.x + bs, b.y);
+      ctx.stroke();
+    });
+
+    // Grille — barres verticales fines devant l'herbe (ne cache pas le batiment)
+    const fY = buildingBottom - S * 5.5;
+    const fH = S * 1.1;
+    const fX1 = ox + S * 2, fX2 = ox + bw - S * 2;
+    ctx.fillStyle = `rgba(25,32,42,${0.82 * sceneAlpha})`;
+    ctx.fillRect(fX1, fY, fX2 - fX1, Math.max(2, fH * 0.13));
+    ctx.fillRect(fX1, fY + fH * 0.86, fX2 - fX1, Math.max(2, fH * 0.13));
+    const barN = Math.round((fX2 - fX1) / (S * 1.35));
+    for (let i = 0; i <= barN; i++) {
+      const bx = fX1 + (i / barN) * (fX2 - fX1);
+      ctx.fillRect(bx - Math.max(1, bCELL * 0.12), fY, Math.max(2, bCELL * 0.23), fH);
+    }
+
+    // Chemin d'entree — bande grise au centre du bas
+    const pathW = S * 8, pathX = ox + bw / 2 - pathW / 2;
+    const pathY = buildingBottom - S * 5.3, pathH = S * 5;
+    const pg = ctx.createLinearGradient(pathX, pathY, pathX, pathY + pathH);
+    pg.addColorStop(0, `rgba(160,165,175,${0.45 * sceneAlpha})`);
+    pg.addColorStop(1, `rgba(140,145,155,${0.15 * sceneAlpha})`);
+    ctx.fillStyle = pg;
+    ctx.fillRect(pathX, pathY, pathW, pathH);
+
+    // Fleurs colorees au pied des arbres
+    const fc = ['rgba(255,75,120,0.92)','rgba(255,205,45,0.92)','rgba(200,90,255,0.88)','rgba(255,135,45,0.9)','rgba(80,210,140,0.9)'];
+    const fr = Math.max(2, bCELL * 0.42);
+    [
+      { x: ox + S * 0.8,   y: buildingBottom - S * 6.0 },
+      { x: ox + S * 2.0,   y: buildingBottom - S * 5.6 },
+      { x: ox + S * 3.2,   y: buildingBottom - S * 6.3 },
+      { x: ox + bw - S * 1.2, y: buildingBottom - S * 6.0 },
+      { x: ox + bw - S * 2.6, y: buildingBottom - S * 5.6 },
+      { x: ox + bw - S * 3.8, y: buildingBottom - S * 6.3 },
+    ].forEach((f, i) => {
+      ctx.fillStyle = fc[i % fc.length];
+      ctx.beginPath(); ctx.arc(f.x, f.y, fr, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.72)';
+      ctx.beginPath(); ctx.arc(f.x, f.y, fr * 0.35, 0, Math.PI * 2); ctx.fill();
+    });
+
+    ctx.restore();
+  }
+
+  function drawWindowGlow() {
+    if (sceneAlpha <= 0 || bCELL < 3) return;
+    const S = bSTEP, ox = bOX, oy = bOY;
+    const pulse = 0.065 + 0.038 * Math.sin(Date.now() * 0.0017);
+    ctx.save();
+    // Lueur haute (fenetres etage)
+    ctx.globalAlpha = pulse * sceneAlpha;
+    const g1 = ctx.createRadialGradient(ox+S*25, oy+S*7.5, 0, ox+S*25, oy+S*7.5, S*18);
+    g1.addColorStop(0, 'rgba(255,245,170,1)'); g1.addColorStop(1, 'rgba(255,200,80,0)');
+    ctx.fillStyle = g1; ctx.fillRect(ox+S*6, oy+S*5, S*38, S*5);
+    // Lueur basse (grandes baies)
+    const g2 = ctx.createRadialGradient(ox+S*25, oy+S*13, 0, ox+S*25, oy+S*13, S*22);
+    g2.addColorStop(0, 'rgba(255,245,170,1)'); g2.addColorStop(1, 'rgba(255,200,80,0)');
+    ctx.fillStyle = g2; ctx.fillRect(ox+S*6, oy+S*9, S*38, S*8);
+    ctx.restore();
+  }
+
   window.addEventListener('resize', resize);
   resize();
 
@@ -379,11 +473,13 @@ body {
       const chars = Math.floor(progress * TOTAL_CHARS);
       if (chars > 0) drawTypewriter(chars);
 
+      sceneAlpha = Math.min(1, assembleFrames / 250);
       if (allClose && assembleFrames > 150) { phase = 1; phaseTimer = 0; }
 
     } else if (phase === 1) {
       // Phase hold — batiment assemble, leger pulse
       phaseTimer++;
+      sceneAlpha = 1;
       particles.forEach(p => {
         p.x += (p.tx - p.x) * 0.1;
         p.y += (p.ty - p.y) * 0.1;
@@ -430,6 +526,7 @@ body {
         ctx.restore();
       }
 
+      sceneAlpha = Math.max(0, 1 - phaseTimer / 80);
       if (phaseTimer > 300) {
         phase = 0;
         assembleFrames = 0;
@@ -459,6 +556,8 @@ body {
       ctx.fill();
     });
 
+    drawExtras();
+    if (phase === 1) drawWindowGlow();
     requestAnimationFrame(draw);
   }
   draw();

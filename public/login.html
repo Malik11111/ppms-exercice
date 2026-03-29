@@ -364,14 +364,14 @@ body {
     ctx.lineWidth   = Math.max(1.5, bCELL * 0.22);
     ctx.lineCap     = 'round';
     const birdDefs = [
-      { fx: 0.12, fy: 0.10, phase: 0,   fspeed: 3.2 },
+      { fx: 0.12, fy: 0.22, phase: 0,   fspeed: 3.2 },
       { fx: 0.25, fy: 0.07, phase: 1.1, fspeed: 3.8 },
       { fx: 0.40, fy: 0.13, phase: 2.2, fspeed: 3.5 },
       { fx: 0.55, fy: 0.06, phase: 3.3, fspeed: 4.0 },
       { fx: 0.70, fy: 0.11, phase: 4.4, fspeed: 3.3 },
       { fx: 0.85, fy: 0.08, phase: 5.5, fspeed: 3.7 },
     ];
-    const ws = bCELL * 1.1;  // envergure plus grande
+    const ws = bCELL * 0.65;  // envergure réduite
     birdDefs.forEach(b => {
       const bx = w * b.fx + Math.sin(t + b.phase) * bCELL * 1.0;
       const by = h * b.fy  + Math.cos(t * 0.6 + b.phase) * bCELL * 0.5;

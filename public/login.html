@@ -176,6 +176,27 @@ body {
   let buildingBottom = 0;
   let bOX = 0, bOY = 0, bCELL = 8, bSTEP = 9, sceneAlpha = 0;
 
+  // Étoiles
+  const STARS = Array.from({length: 35}, () => ({
+    fx: Math.random(), fy: Math.random() * 0.52,
+    r: Math.random() * 0.9 + 0.3,
+    phase: Math.random() * Math.PI * 2,
+    speed: 0.7 + Math.random() * 1.4,
+  }));
+
+  // Lucioles
+  const FIREFLIES = Array.from({length: 9}, (_, i) => ({
+    fx: 0.05 + Math.random() * 0.9,
+    fy: 0.62 + Math.random() * 0.28,
+    phase: (i / 9) * Math.PI * 2,
+    speed: 0.35 + Math.random() * 0.55,
+    dx: (Math.random() - 0.5) * 0.00010,
+    dy: (Math.random() - 0.5) * 0.00007,
+  }));
+
+  // Fenêtres allumées — état aléatoire
+  const WIN_STATE = {};
+
   // 1=brique 2=vitre 3=toit 4=feuillage 5=tronc 6=herbe 7=porte 8=buisson 9=fleur
   const PAL = {
     1: [185, 85, 55],
@@ -340,12 +361,49 @@ body {
     ctx.restore();
   }
 
+  function drawSkyGradient() {
+    // Cycle lent : nuit → aube → jour → crépuscule → nuit (~2 min)
+    const cy = (Date.now() * 0.000008) % 1;
+    const dusk = Math.pow(Math.sin(cy * Math.PI * 2), 4);
+    const dawn = Math.max(0, Math.sin(cy * Math.PI * 2));
+    const topR = Math.round(8  + dusk * 90  + dawn * 30);
+    const topG = Math.round(14 + dusk * 20  + dawn * 18);
+    const topB = Math.round(48 - dusk * 15);
+    const botR = Math.round(12 + dusk * 130 + dawn * 50);
+    const botG = Math.round(20 + dusk * 45  + dawn * 30);
+    const botB = Math.round(52 - dusk * 22);
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.72);
+    skyGrad.addColorStop(0, `rgba(${topR},${topG},${topB},0.72)`);
+    skyGrad.addColorStop(1, `rgba(${botR},${botG},${botB},0)`);
+    ctx.globalAlpha = sceneAlpha;
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, w, h * 0.72);
+  }
+
   function drawExtras() {
     if (sceneAlpha <= 0) return;
     ctx.save();
     const S = bSTEP, ox = bOX, oy = bOY;
     const cols = B[0].length, bw = cols * S;
     const t = Date.now() * 0.00024;
+
+    // Lune — croissant en haut à gauche
+    ctx.globalAlpha = sceneAlpha * 0.80;
+    const mx = ox + bw * 0.08, my = oy - bCELL * 4.5, mr = bCELL * 1.5;
+    ctx.fillStyle = 'rgba(240,235,200,1)';
+    ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(12,22,48,1)';
+    ctx.beginPath(); ctx.arc(mx + mr * 0.45, my - mr * 0.1, mr * 0.88, 0, Math.PI * 2); ctx.fill();
+
+    // Étoiles scintillantes
+    STARS.forEach(s => {
+      const blink = 0.4 + 0.6 * Math.abs(Math.sin(t * s.speed + s.phase));
+      ctx.globalAlpha = sceneAlpha * blink * 0.85;
+      ctx.fillStyle = 'rgba(255,255,230,1)';
+      ctx.beginPath();
+      ctx.arc(w * s.fx, h * s.fy, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
 
     // Soleil — halo doux en haut à droite, moins intense
     ctx.globalAlpha = sceneAlpha * 0.65;
@@ -397,16 +455,65 @@ body {
       ctx.fill();
     });
 
+    // Lucioles — petites lumières jaune-vert qui flottent
+    const tff = Date.now();
+    FIREFLIES.forEach((f, i) => {
+      f.fx = ((f.fx + f.dx + 1) % 1);
+      f.fy = Math.max(0.58, Math.min(0.94, f.fy + f.dy));
+      if (Math.random() < 0.003) f.dy = (Math.random() - 0.5) * 0.00007;
+      const glow = 0.3 + 0.7 * Math.abs(Math.sin(tff * 0.001 * f.speed + f.phase));
+      ctx.globalAlpha = sceneAlpha * glow * 0.75;
+      const fx = w * f.fx, fy = h * f.fy, fr = Math.max(1.5, bCELL * 0.18);
+      const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, fr * 3);
+      fg.addColorStop(0,   'rgba(180,255,100,0.9)');
+      fg.addColorStop(0.4, 'rgba(120,220,60,0.4)');
+      fg.addColorStop(1,   'rgba(80,180,30,0)');
+      ctx.fillStyle = fg;
+      ctx.beginPath(); ctx.arc(fx, fy, fr * 3, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = sceneAlpha * glow;
+      ctx.fillStyle = 'rgba(220,255,160,1)';
+      ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
+    });
+
     ctx.restore();
   }
 
-  function drawWindowGlow() {}
+  function drawWindowGlow() {
+    if (sceneAlpha < 0.8) return;
+    ctx.save();
+    const S = bSTEP, ox = bOX, oy = bOY;
+    const now = Date.now();
+    // Trouver les fenêtres (couleur 2) parmi les particules
+    particles.forEach((p, i) => {
+      const [r, g, b] = p.color;
+      if (r !== 100 || g !== 170 || b !== 220) return; // pas une vitre
+      if (!WIN_STATE[i]) {
+        WIN_STATE[i] = { on: Math.random() < 0.4, next: now + Math.random() * 8000 + 2000 };
+      }
+      const ws = WIN_STATE[i];
+      if (now > ws.next) {
+        ws.on = !ws.on;
+        ws.next = now + (ws.on ? Math.random() * 12000 + 4000 : Math.random() * 6000 + 1000);
+      }
+      if (!ws.on) return;
+      const glow = 0.15 + 0.08 * Math.sin(now * 0.002 + i);
+      ctx.globalAlpha = glow;
+      const wg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, bCELL * 1.8);
+      wg.addColorStop(0,   'rgba(255,210,80,0.9)');
+      wg.addColorStop(0.5, 'rgba(255,170,40,0.3)');
+      wg.addColorStop(1,   'rgba(255,140,0,0)');
+      ctx.fillStyle = wg;
+      ctx.beginPath(); ctx.arc(p.x, p.y, bCELL * 1.8, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.restore();
+  }
 
   window.addEventListener('resize', resize);
   resize();
 
   function draw() {
     ctx.clearRect(0, 0, w, h);
+    drawSkyGradient();
 
     if (phase === 0) {
       // Phase assemblage — les particules emergent du fond

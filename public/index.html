@@ -2557,6 +2557,13 @@ function exportExcel() {
     ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Date :', labelStyle);
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(now, valueHighlight);
     r1++;
+    const th = String(Math.floor(timerSeconds / 3600)).padStart(2,'0');
+    const tm = String(Math.floor((timerSeconds % 3600) / 60)).padStart(2,'0');
+    const ts = String(timerSeconds % 60).padStart(2,'0');
+    const timerLabel = timerSeconds > 0 ? `${th}:${tm}:${ts}` : 'Non démarré';
+    ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Durée de l\'exercice :', labelStyle);
+    ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(timerLabel, valueHighlight);
+    r1++;
     ws1[XLSX.utils.encode_cell({r:r1,c:0})] = cellVal('Type de scénario :', labelStyle);
     ws1[XLSX.utils.encode_cell({r:r1,c:1})] = cellVal(exercise.scenario.type || '', valueHighlight);
     r1++;

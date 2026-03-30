@@ -474,7 +474,33 @@ body {
     ctx.restore();
   }
 
-  function drawWindowGlow() {}
+  function drawWindowGlow() {
+    if (sceneAlpha < 0.8) return;
+    ctx.save();
+    const now = Date.now();
+    particles.forEach((p, i) => {
+      const [r, g, b] = p.color;
+      if (r !== 100 || g !== 170 || b !== 220) return;
+      if (!WIN_STATE[i]) {
+        WIN_STATE[i] = { on: Math.random() < 0.4, next: now + Math.random() * 8000 + 2000 };
+      }
+      const ws = WIN_STATE[i];
+      if (now > ws.next) {
+        ws.on = !ws.on;
+        ws.next = now + (ws.on ? Math.random() * 12000 + 4000 : Math.random() * 6000 + 1000);
+      }
+      if (!ws.on) return;
+      const glow = 0.15 + 0.08 * Math.sin(now * 0.002 + i);
+      ctx.globalAlpha = glow;
+      const wg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, bCELL * 1.8);
+      wg.addColorStop(0,   'rgba(255,210,80,0.9)');
+      wg.addColorStop(0.5, 'rgba(255,170,40,0.3)');
+      wg.addColorStop(1,   'rgba(255,140,0,0)');
+      ctx.fillStyle = wg;
+      ctx.beginPath(); ctx.arc(p.x, p.y, bCELL * 1.8, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.restore();
+  }
 
   window.addEventListener('resize', resize);
   resize();

@@ -565,61 +565,23 @@ body {
     ctx.restore();
   }
 
-  // Séquence exacte : droite haut → centre bas → gauche bas → gauche haut
-  // Chaque zone reste allumée, tout s'éteint 2s après la dernière
-  const GLOW_SEQ = [
-    { col: [0.65, 1.0],  row: [0.0, 0.5], t:    0 },  // droite haut  (t=0s)
-    { col: [0.3,  0.65], row: [0.5, 1.0], t: 1000 },  // centre bas   (t=1s)
-    { col: [0.0,  0.35], row: [0.5, 1.0], t: 5000 },  // gauche bas   (t=5s)
-    { col: [0.0,  0.35], row: [0.0, 0.5], t: 7000 },  // gauche haut  (t=7s)
-  ];
-  const GLOW_CYCLE      = 12000; // cycle total (7s + 2s allumé + ~3s extinction)
-  const GLOW_FADE_IN    =   600; // fondu d'allumage par zone (ms)
-  const GLOW_FADEOUT_AT =  9000; // tout s'éteint ensemble après 2s
-  const GLOW_FADEOUT    =  1500; // durée extinction
-
   function drawWindowGlow() {
     if (sceneAlpha < 0.8) return;
     ctx.save();
     const now = Date.now();
-    const cycleT = now % GLOW_CYCLE;
-
-    // Bornes du bâtiment (murs, sans arbres)
-    const bLeft  = bOX + 7 * bSTEP;
-    const bRight = bOX + 43 * bSTEP;
-    const bTop   = bOY + 5 * bSTEP;
-    const bBot   = bOY + 16 * bSTEP;
-    const bW = bRight - bLeft || 1;
-    const bH = bBot - bTop || 1;
-
-    // Facteur d'extinction globale (toutes les lumières s'éteignent ensemble à la fin)
-    let globalFade = 1;
-    if (cycleT >= GLOW_FADEOUT_AT) {
-      globalFade = Math.max(0, 1 - (cycleT - GLOW_FADEOUT_AT) / GLOW_FADEOUT);
-    }
-    if (globalFade < 0.01) { ctx.restore(); return; }
-
     particles.forEach((p, i) => {
       const [r, g, b] = p.color;
       if (r !== 100 || g !== 170 || b !== 220) return;
-
-      const nx = (p.x - bLeft) / bW;
-      const ny = (p.y - bTop) / bH;
-
-      // La fenêtre s'allume dès que sa zone est activée et reste allumée
-      let intensity = 0;
-      for (const zone of GLOW_SEQ) {
-        if (nx < zone.col[0] || nx > zone.col[1]) continue;
-        if (ny < zone.row[0] || ny > zone.row[1]) continue;
-        if (cycleT >= zone.t) {
-          // Fondu d'allumage rapide, puis reste à 1
-          intensity = Math.min(1, (cycleT - zone.t) / GLOW_FADE_IN);
-        }
-        break;
+      if (!WIN_STATE[i]) {
+        WIN_STATE[i] = { on: Math.random() < 0.4, next: now + Math.random() * 8000 + 2000 };
       }
-      if (intensity < 0.01) return;
-
-      const glow = intensity * globalFade * (0.16 + 0.06 * Math.sin(now * 0.0015 + i));
+      const ws = WIN_STATE[i];
+      if (now > ws.next) {
+        ws.on = !ws.on;
+        ws.next = now + (ws.on ? Math.random() * 12000 + 4000 : Math.random() * 6000 + 1000);
+      }
+      if (!ws.on) return;
+      const glow = 0.15 + 0.08 * Math.sin(now * 0.002 + i);
       ctx.globalAlpha = glow;
       const wg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, bCELL * 1.8);
       wg.addColorStop(0,   'rgba(255,210,80,0.9)');

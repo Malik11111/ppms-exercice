@@ -521,25 +521,46 @@ body {
       ctx.fill();
     });
 
-    // Lucioles — petites lumières jaune-vert qui flottent
-    const tff = Date.now();
-    FIREFLIES.forEach((f, i) => {
-      f.fx = ((f.fx + f.dx + 1) % 1);
-      f.fy = Math.max(0.58, Math.min(0.94, f.fy + f.dy));
-      if (Math.random() < 0.003) f.dy = (Math.random() - 0.5) * 0.00007;
-      const glow = 0.3 + 0.7 * Math.abs(Math.sin(tff * 0.001 * f.speed + f.phase));
-      ctx.globalAlpha = sceneAlpha * glow * 0.75;
-      const fx = w * f.fx, fy = h * f.fy, fr = Math.max(1.5, bCELL * 0.18);
-      const fg = ctx.createRadialGradient(fx, fy, 0, fx, fy, fr * 3);
-      fg.addColorStop(0,   'rgba(180,255,100,0.9)');
-      fg.addColorStop(0.4, 'rgba(120,220,60,0.4)');
-      fg.addColorStop(1,   'rgba(80,180,30,0)');
-      ctx.fillStyle = fg;
-      ctx.beginPath(); ctx.arc(fx, fy, fr * 3, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = sceneAlpha * glow;
-      ctx.fillStyle = 'rgba(220,255,160,1)';
-      ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
-    });
+    // Lucioles — confinées dans la zone herbe du bâtiment
+    if (buildingBottom > 0) {
+      const tff = Date.now();
+      const grassTop   = bOY + 17 * bSTEP;
+      const grassBot   = buildingBottom - bCELL * 0.3;
+      const buildLeft  = bOX + bCELL * 0.5;
+      const buildRight = bOX + B[0].length * bSTEP - bCELL * 0.5;
+      const grassW = buildRight - buildLeft;
+      const grassH = Math.max(1, grassBot - grassTop);
+      FIREFLIES.forEach((f, i) => {
+        // Initialisation en coordonnées pixel dans la zone herbe
+        if (!f.px) {
+          f.px  = buildLeft + Math.random() * grassW;
+          f.py  = grassTop  + Math.random() * grassH;
+          f.dpx = (Math.random() - 0.5) * 0.5;
+          f.dpy = (Math.random() - 0.5) * 0.32;
+        }
+        f.px += f.dpx;
+        f.py += f.dpy;
+        if (Math.random() < 0.02)  f.dpx = (Math.random() - 0.5) * 0.5;
+        if (Math.random() < 0.015) f.dpy = (Math.random() - 0.5) * 0.32;
+        // Rebondir et clamper dans l'herbe
+        if (f.px < buildLeft  || f.px > buildRight) f.dpx *= -1;
+        if (f.py < grassTop   || f.py > grassBot)   f.dpy *= -1;
+        f.px = Math.max(buildLeft, Math.min(buildRight, f.px));
+        f.py = Math.max(grassTop,  Math.min(grassBot,   f.py));
+        const glow = 0.3 + 0.7 * Math.abs(Math.sin(tff * 0.001 * f.speed + f.phase));
+        const fr = Math.max(1.5, bCELL * 0.18);
+        ctx.globalAlpha = sceneAlpha * glow * 0.75;
+        const fg = ctx.createRadialGradient(f.px, f.py, 0, f.px, f.py, fr * 3);
+        fg.addColorStop(0,   'rgba(180,255,100,0.9)');
+        fg.addColorStop(0.4, 'rgba(120,220,60,0.4)');
+        fg.addColorStop(1,   'rgba(80,180,30,0)');
+        ctx.fillStyle = fg;
+        ctx.beginPath(); ctx.arc(f.px, f.py, fr * 3, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = sceneAlpha * glow;
+        ctx.fillStyle = 'rgba(220,255,160,1)';
+        ctx.beginPath(); ctx.arc(f.px, f.py, fr, 0, Math.PI * 2); ctx.fill();
+      });
+    }
 
     ctx.restore();
   }

@@ -704,23 +704,17 @@ body {
       const a = p.alpha * (0.9 + 0.1 * Math.sin(p.pulse));
       const s = p.size;
 
-      // Balancement feuillage des arbres
-      const isFoliage = (r === 22 && g === 65 && b === 28);
-      const sway = (phase === 1 && isFoliage)
-        ? Math.sin(Date.now() * 0.00085 + p.ty * 0.04) * bCELL * 0.45
-        : 0;
-
       if (phase === 1) {
         const glow = 0.05 + 0.03 * Math.sin(p.pulse);
         ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${glow})`;
         ctx.beginPath();
-        ctx.roundRect(p.x + sway - s/2 - 1, p.y - s/2 - 1, s + 2, s + 2, 2);
+        ctx.roundRect(p.x - s/2 - 1, p.y - s/2 - 1, s + 2, s + 2, 2);
         ctx.fill();
       }
 
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
       ctx.beginPath();
-      ctx.roundRect(p.x + sway - s/2, p.y - s/2, s, s, s < 3 ? 0.5 : 2);
+      ctx.roundRect(p.x - s/2, p.y - s/2, s, s, s < 3 ? 0.5 : 2);
       ctx.fill();
     });
 

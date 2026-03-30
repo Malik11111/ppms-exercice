@@ -462,9 +462,9 @@ body {
       if (sstar.life >= sstar.maxLife) sstar = null;
     }
 
-    // Lune — croissant en haut à gauche
+    // Lune — croissant en haut à droite
     ctx.globalAlpha = sceneAlpha * 0.80;
-    const mx = ox + bw * 0.08, my = oy - bCELL * 4.5, mr = bCELL * 1.5;
+    const mx = ox + bw * 0.92, my = oy - bCELL * 4.5, mr = bCELL * 1.5;
     ctx.fillStyle = 'rgba(240,235,200,1)';
     ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = 'rgba(12,22,48,1)';

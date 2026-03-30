@@ -565,19 +565,18 @@ body {
     ctx.restore();
   }
 
-  // Séquence : les zones s'allument une par une et restent allumées
+  // Séquence exacte : droite haut → centre bas → gauche bas → gauche haut
+  // Chaque zone reste allumée, tout s'éteint 2s après la dernière
   const GLOW_SEQ = [
-    { col: [0.7, 1.0], row: [0.0, 0.5], t: 0 },      // droite haut
-    { col: [0.7, 1.0], row: [0.5, 1.0], t: 3000 },    // droite bas
-    { col: [0.35, 0.7], row: [0.5, 1.0], t: 6000 },   // centre bas
-    { col: [0.35, 0.7], row: [0.0, 0.5], t: 9000 },   // centre haut
-    { col: [0.0, 0.35], row: [0.0, 0.5], t: 12000 },  // gauche haut
-    { col: [0.0, 0.35], row: [0.5, 1.0], t: 15000 },  // gauche bas
+    { col: [0.65, 1.0],  row: [0.0, 0.5], t:    0 },  // droite haut  (t=0s)
+    { col: [0.3,  0.65], row: [0.5, 1.0], t: 1000 },  // centre bas   (t=1s)
+    { col: [0.0,  0.35], row: [0.5, 1.0], t: 5000 },  // gauche bas   (t=5s)
+    { col: [0.0,  0.35], row: [0.0, 0.5], t: 7000 },  // gauche haut  (t=7s)
   ];
-  const GLOW_CYCLE      = 28000; // durée totale du cycle
-  const GLOW_FADE_IN    =   800; // fondu d'allumage par zone (ms)
-  const GLOW_FADEOUT_AT = 19000; // moment où tout s'éteint ensemble
-  const GLOW_FADEOUT    =  3000; // durée de l'extinction globale
+  const GLOW_CYCLE      = 12000; // cycle total (7s + 2s allumé + ~3s extinction)
+  const GLOW_FADE_IN    =   600; // fondu d'allumage par zone (ms)
+  const GLOW_FADEOUT_AT =  9000; // tout s'éteint ensemble après 2s
+  const GLOW_FADEOUT    =  1500; // durée extinction
 
   function drawWindowGlow() {
     if (sceneAlpha < 0.8) return;

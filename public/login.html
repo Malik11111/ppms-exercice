@@ -197,6 +197,10 @@ body {
   // Fenêtres allumées — état aléatoire
   const WIN_STATE = {};
 
+  // Étoile filante
+  let sstar = null;
+  let sstarNext = Date.now() + 10000 + Math.random() * 12000;
+
   // 1=brique 2=vitre 3=toit 4=feuillage 5=tronc 6=herbe 7=porte 8=buisson 9=panneaux solaires
   const PAL = {
     1: [130, 58, 38],   // briques — rouge sombre nuit
@@ -391,6 +395,48 @@ body {
     const S = bSTEP, ox = bOX, oy = bOY;
     const cols = B[0].length, bw = cols * S;
     const t = Date.now() * 0.00024;
+
+    // Étoile filante
+    const nowSS = Date.now();
+    if (!sstar && nowSS > sstarNext) {
+      sstar = {
+        x: w * (0.1 + Math.random() * 0.5),
+        y: h * (0.02 + Math.random() * 0.15),
+        dx: w * (0.0025 + Math.random() * 0.003),
+        dy: h * (0.0012 + Math.random() * 0.001),
+        life: 0, maxLife: 55 + Math.random() * 25,
+      };
+      sstarNext = nowSS + 10000 + Math.random() * 14000;
+    }
+    if (sstar) {
+      const prog = sstar.life / sstar.maxLife;
+      const fade = prog < 0.3 ? prog / 0.3 : 1 - (prog - 0.3) / 0.7;
+      ctx.globalAlpha = sceneAlpha * fade * 0.9;
+      const tailLen = bCELL * 5;
+      const sg = ctx.createLinearGradient(
+        sstar.x - sstar.dx * tailLen, sstar.y - sstar.dy * tailLen,
+        sstar.x, sstar.y
+      );
+      sg.addColorStop(0, 'rgba(255,255,240,0)');
+      sg.addColorStop(1, 'rgba(255,255,240,1)');
+      ctx.strokeStyle = sg;
+      ctx.lineWidth = Math.max(1, bCELL * 0.25);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sstar.x - sstar.dx * tailLen, sstar.y - sstar.dy * tailLen);
+      ctx.lineTo(sstar.x, sstar.y);
+      ctx.stroke();
+      // tête brillante
+      ctx.globalAlpha = sceneAlpha * fade;
+      ctx.fillStyle = 'rgba(255,255,255,1)';
+      ctx.beginPath();
+      ctx.arc(sstar.x, sstar.y, Math.max(1, bCELL * 0.22), 0, Math.PI * 2);
+      ctx.fill();
+      sstar.x += sstar.dx;
+      sstar.y += sstar.dy;
+      sstar.life++;
+      if (sstar.life >= sstar.maxLife) sstar = null;
+    }
 
     // Lune — croissant en haut à gauche
     ctx.globalAlpha = sceneAlpha * 0.80;
@@ -613,17 +659,23 @@ body {
       const a = p.alpha * (0.9 + 0.1 * Math.sin(p.pulse));
       const s = p.size;
 
+      // Balancement feuillage des arbres
+      const isFoliage = (r === 22 && g === 65 && b === 28);
+      const sway = (phase === 1 && isFoliage)
+        ? Math.sin(Date.now() * 0.00085 + p.ty * 0.04) * bCELL * 0.45
+        : 0;
+
       if (phase === 1) {
         const glow = 0.05 + 0.03 * Math.sin(p.pulse);
         ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${glow})`;
         ctx.beginPath();
-        ctx.roundRect(p.x - s/2 - 1, p.y - s/2 - 1, s + 2, s + 2, 2);
+        ctx.roundRect(p.x + sway - s/2 - 1, p.y - s/2 - 1, s + 2, s + 2, 2);
         ctx.fill();
       }
 
       ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
       ctx.beginPath();
-      ctx.roundRect(p.x - s/2, p.y - s/2, s, s, s < 3 ? 0.5 : 2);
+      ctx.roundRect(p.x + sway - s/2, p.y - s/2, s, s, s < 3 ? 0.5 : 2);
       ctx.fill();
     });
 

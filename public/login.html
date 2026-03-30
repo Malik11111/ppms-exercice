@@ -200,7 +200,7 @@ body {
   // 1=brique 2=vitre 3=toit 4=feuillage 5=tronc 6=herbe 7=porte 8=buisson 9=panneaux solaires
   const PAL = {
     1: [130, 58, 38],   // briques — rouge sombre nuit
-    2: [18,  35, 65],   // vitres — bleu nuit foncé (éclairées par windowGlow)
+    2: [100, 170, 220], // vitres — bleu clair original
     3: [42,  44, 56],   // toit — gris ardoise nuit
     4: [22,  65, 28],   // feuillage — vert foncé nuit
     5: [75,  45, 22],   // tronc — brun sombre
@@ -474,35 +474,7 @@ body {
     ctx.restore();
   }
 
-  function drawWindowGlow() {
-    if (sceneAlpha < 0.8) return;
-    ctx.save();
-    const S = bSTEP, ox = bOX, oy = bOY;
-    const now = Date.now();
-    // Trouver les fenêtres (couleur 2) parmi les particules
-    particles.forEach((p, i) => {
-      const [r, g, b] = p.color;
-      if (r !== 18 || g !== 35 || b !== 65) return; // pas une vitre
-      if (!WIN_STATE[i]) {
-        WIN_STATE[i] = { on: Math.random() < 0.4, next: now + Math.random() * 8000 + 2000 };
-      }
-      const ws = WIN_STATE[i];
-      if (now > ws.next) {
-        ws.on = !ws.on;
-        ws.next = now + (ws.on ? Math.random() * 12000 + 4000 : Math.random() * 6000 + 1000);
-      }
-      if (!ws.on) return;
-      const glow = 0.15 + 0.08 * Math.sin(now * 0.002 + i);
-      ctx.globalAlpha = glow;
-      const wg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, bCELL * 1.8);
-      wg.addColorStop(0,   'rgba(255,210,80,0.9)');
-      wg.addColorStop(0.5, 'rgba(255,170,40,0.3)');
-      wg.addColorStop(1,   'rgba(255,140,0,0)');
-      ctx.fillStyle = wg;
-      ctx.beginPath(); ctx.arc(p.x, p.y, bCELL * 1.8, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.restore();
-  }
+  function drawWindowGlow() {}
 
   window.addEventListener('resize', resize);
   resize();

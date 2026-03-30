@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PPMS - Connexion</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -324,41 +325,64 @@ body {
 
   // Typewriter : dessine les N premiers caracteres du texte
   function drawTypewriter(charCount) {
-    const fontSize = Math.max(15, Math.min(26, w * 0.04));
-    const textY = buildingBottom + 14;
+    const fontSize = Math.max(16, Math.min(28, w * 0.042));
+    const textY = buildingBottom + 18;
     ctx.save();
-    ctx.font = `700 ${fontSize}px 'Segoe UI', Arial, sans-serif`;
+    ctx.font = `700 ${fontSize}px 'Cinzel', 'Segoe UI', serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 10;
+    ctx.letterSpacing = '2px';
+    ctx.shadowColor = 'rgba(180,130,40,0.55)';
+    ctx.shadowBlur = 14;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 2;
-    ctx.fillStyle = '#dceaff';
 
-    // Ligne 1
+    // Ligne 1 — dégradé crème/or
     const c1 = Math.min(charCount, LINE1.length);
     if (c1 > 0) {
       const txt1 = LINE1.substring(0, c1);
+      const tw1 = ctx.measureText(txt1).width;
+      const grad1 = ctx.createLinearGradient(w/2 - tw1/2, 0, w/2 + tw1/2, 0);
+      grad1.addColorStop(0,   '#f5e8c0');
+      grad1.addColorStop(0.5, '#ffe8a0');
+      grad1.addColorStop(1,   '#f0d898');
+      ctx.fillStyle = grad1;
       ctx.fillText(txt1, w / 2, textY);
-      // Curseur clignotant
       if (charCount <= LINE1.length && Math.floor(Date.now() / 400) % 2 === 0) {
-        const tw = ctx.measureText(txt1).width;
-        ctx.fillRect(w / 2 + tw / 2 + 2, textY + 2, 2, fontSize * 0.85);
+        ctx.fillStyle = '#ffe8a0';
+        ctx.fillRect(w / 2 + tw1 / 2 + 3, textY + 2, 2, fontSize * 0.85);
       }
     }
 
-    // Ligne 2
+    // Ligne décorative entre les deux lignes
+    if (charCount >= LINE1.length) {
+      const lineW = Math.min(180, w * 0.35);
+      const lineY = textY + fontSize * 1.38;
+      const lg = ctx.createLinearGradient(w/2 - lineW/2, 0, w/2 + lineW/2, 0);
+      lg.addColorStop(0,   'rgba(245,220,140,0)');
+      lg.addColorStop(0.5, 'rgba(245,220,140,0.7)');
+      lg.addColorStop(1,   'rgba(245,220,140,0)');
+      ctx.strokeStyle = lg;
+      ctx.lineWidth = 1;
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.moveTo(w/2 - lineW/2, lineY);
+      ctx.lineTo(w/2 + lineW/2, lineY);
+      ctx.stroke();
+    }
+
+    // Ligne 2 — crème doux
     const c2 = Math.min(charCount - LINE1.length, LINE2.length);
     if (c2 > 0) {
       const txt2 = LINE2.substring(0, c2);
-      ctx.font = `600 ${Math.round(fontSize * 0.8)}px 'Segoe UI', Arial, sans-serif`;
-      ctx.fillStyle = '#a8c8e8';
-      ctx.fillText(txt2, w / 2, textY + fontSize * 1.5);
-      // Curseur
+      ctx.font = `500 ${Math.round(fontSize * 0.75)}px 'Cinzel', serif`;
+      ctx.letterSpacing = '3px';
+      ctx.shadowBlur = 8;
+      ctx.fillStyle = '#ddd0aa';
+      ctx.fillText(txt2, w / 2, textY + fontSize * 1.55);
       if (charCount <= TOTAL_CHARS && Math.floor(Date.now() / 400) % 2 === 0) {
         const tw2 = ctx.measureText(txt2).width;
-        ctx.fillRect(w / 2 + tw2 / 2 + 2, textY + fontSize * 1.5 + 2, 2, fontSize * 0.7);
+        ctx.fillRect(w / 2 + tw2 / 2 + 3, textY + fontSize * 1.55 + 2, 2, fontSize * 0.65);
       }
     }
 

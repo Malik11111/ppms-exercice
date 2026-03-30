@@ -565,8 +565,7 @@ body {
     ctx.restore();
   }
 
-  // Séquence de zones pour simuler quelqu'un qui se déplace dans le bâtiment
-  // Chaque étape = {col:[min,max], row:[min,max], delay en ms depuis le début du cycle}
+  // Séquence : les zones s'allument une par une et restent allumées
   const GLOW_SEQ = [
     { col: [0.7, 1.0], row: [0.0, 0.5], t: 0 },      // droite haut
     { col: [0.7, 1.0], row: [0.5, 1.0], t: 3000 },    // droite bas
@@ -575,8 +574,10 @@ body {
     { col: [0.0, 0.35], row: [0.0, 0.5], t: 12000 },  // gauche haut
     { col: [0.0, 0.35], row: [0.5, 1.0], t: 15000 },  // gauche bas
   ];
-  const GLOW_CYCLE = 22000; // durée totale d'un cycle complet
-  const GLOW_FADE  = 3500;  // durée pendant laquelle une zone reste allumée
+  const GLOW_CYCLE      = 28000; // durée totale du cycle
+  const GLOW_FADE_IN    =   800; // fondu d'allumage par zone (ms)
+  const GLOW_FADEOUT_AT = 19000; // moment où tout s'éteint ensemble
+  const GLOW_FADEOUT    =  3000; // durée de l'extinction globale
 
   function drawWindowGlow() {
     if (sceneAlpha < 0.8) return;
@@ -592,32 +593,34 @@ body {
     const bW = bRight - bLeft || 1;
     const bH = bBot - bTop || 1;
 
+    // Facteur d'extinction globale (toutes les lumières s'éteignent ensemble à la fin)
+    let globalFade = 1;
+    if (cycleT >= GLOW_FADEOUT_AT) {
+      globalFade = Math.max(0, 1 - (cycleT - GLOW_FADEOUT_AT) / GLOW_FADEOUT);
+    }
+    if (globalFade < 0.01) { ctx.restore(); return; }
+
     particles.forEach((p, i) => {
       const [r, g, b] = p.color;
       if (r !== 100 || g !== 170 || b !== 220) return;
 
-      // Position normalisée de cette fenêtre dans le bâtiment
       const nx = (p.x - bLeft) / bW;
       const ny = (p.y - bTop) / bH;
 
-      // Trouver l'intensité max parmi les zones actives
-      let maxGlow = 0;
+      // La fenêtre s'allume dès que sa zone est activée et reste allumée
+      let intensity = 0;
       for (const zone of GLOW_SEQ) {
         if (nx < zone.col[0] || nx > zone.col[1]) continue;
         if (ny < zone.row[0] || ny > zone.row[1]) continue;
-        // Temps depuis l'activation de cette zone
-        let dt = cycleT - zone.t;
-        if (dt < 0) dt += GLOW_CYCLE;
-        if (dt < GLOW_FADE) {
-          // Fondu : montée rapide (500ms) puis descente douce
-          const ramp = Math.min(1, dt / 500);
-          const fade = Math.max(0, 1 - (dt - 500) / (GLOW_FADE - 500));
-          maxGlow = Math.max(maxGlow, ramp * fade);
+        if (cycleT >= zone.t) {
+          // Fondu d'allumage rapide, puis reste à 1
+          intensity = Math.min(1, (cycleT - zone.t) / GLOW_FADE_IN);
         }
+        break;
       }
-      if (maxGlow < 0.01) return;
+      if (intensity < 0.01) return;
 
-      const glow = maxGlow * (0.16 + 0.06 * Math.sin(now * 0.0015 + i));
+      const glow = intensity * globalFade * (0.16 + 0.06 * Math.sin(now * 0.0015 + i));
       ctx.globalAlpha = glow;
       const wg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, bCELL * 1.8);
       wg.addColorStop(0,   'rgba(255,210,80,0.9)');

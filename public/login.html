@@ -197,17 +197,17 @@ body {
   // Fenêtres allumées — état aléatoire
   const WIN_STATE = {};
 
-  // 1=brique 2=vitre 3=toit 4=feuillage 5=tronc 6=herbe 7=porte 8=buisson 9=fleur
+  // 1=brique 2=vitre 3=toit 4=feuillage 5=tronc 6=herbe 7=porte 8=buisson 9=panneaux solaires
   const PAL = {
-    1: [185, 85, 55],
-    2: [100, 170, 220],
-    3: [55, 58, 68],
-    4: [50, 145, 55],
-    5: [115, 72, 35],
-    6: [65, 150, 50],
-    7: [80, 48, 25],
-    8: [35, 110, 40],
-    9: [18, 22, 40],
+    1: [130, 58, 38],   // briques — rouge sombre nuit
+    2: [18,  35, 65],   // vitres — bleu nuit foncé (éclairées par windowGlow)
+    3: [42,  44, 56],   // toit — gris ardoise nuit
+    4: [22,  65, 28],   // feuillage — vert foncé nuit
+    5: [75,  45, 22],   // tronc — brun sombre
+    6: [20,  60, 22],   // herbe — vert très sombre
+    7: [50,  30, 15],   // porte — brun très sombre
+    8: [15,  50, 18],   // buisson — vert noir
+    9: [10,  11, 16],   // panneaux solaires — quasi-noir (distinct du toit)
   };
 
   const LINE1 = 'Pôle Épilepsie Léopold Bellan';
@@ -362,7 +362,12 @@ body {
   }
 
   function drawSkyGradient() {
-    // Cycle lent : nuit → aube → jour → crépuscule → nuit (~2 min)
+    // Voile nuit — assombrit toute la scène
+    ctx.globalAlpha = sceneAlpha * 0.52;
+    ctx.fillStyle = 'rgba(4, 7, 22, 1)';
+    ctx.fillRect(0, 0, w, h);
+
+    // Cycle lent : nuit → aube → crépuscule → nuit (~2 min)
     const cy = (Date.now() * 0.000008) % 1;
     const dusk = Math.pow(Math.sin(cy * Math.PI * 2), 4);
     const dawn = Math.max(0, Math.sin(cy * Math.PI * 2));
@@ -477,7 +482,7 @@ body {
     // Trouver les fenêtres (couleur 2) parmi les particules
     particles.forEach((p, i) => {
       const [r, g, b] = p.color;
-      if (r !== 100 || g !== 170 || b !== 220) return; // pas une vitre
+      if (r !== 18 || g !== 35 || b !== 65) return; // pas une vitre
       if (!WIN_STATE[i]) {
         WIN_STATE[i] = { on: Math.random() < 0.4, next: now + Math.random() * 8000 + 2000 };
       }
